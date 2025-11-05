@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
     $phone = trim($_POST['phone']);
-    
+
     // Validate dữ liệu
     if (empty($username) || empty($password) || empty($confirm_password) || empty($phone)) {
         $error = 'Vui lòng điền đầy đủ thông tin.';
@@ -31,35 +31,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Mật khẩu xác nhận không khớp.';
     } else {
         // Kiểm tra số điện thoại đã tồn tại chưa
-        $stmt = $db->prepare("SELECT id FROM users WHERE phone = ?");
+        $stmt = $db->prepare("SELECT maND FROM nguoidung WHERE sdt = ?");
         $stmt->execute([$phone]);
-        
+
         if ($stmt->rowCount() > 0) {
             $error = 'Số điện thoại đã được đăng ký.';
         } else {
             // Hash password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
+
             // Thêm user vào database
-            $stmt = $db->prepare("INSERT INTO users (name, password, phone, login_method,role_id) VALUES (?, ?, ?, 'normal','1')");
-            
+            $stmt = $db->prepare("INSERT INTO nguoidung (hoTen, password, sdt, login_method,maVaiTro) VALUES (?, ?, ?, 'normal','1')");
+
             if ($stmt->execute([$username, $hashed_password, $phone])) {
                 // Lấy thông tin user vừa đăng ký
-                $stmt = $db->prepare("SELECT * FROM users WHERE phone = ?");
+                $stmt = $db->prepare("SELECT * FROM nguoidung WHERE sdt = ?");
                 $stmt->execute([$phone]);
                 $newUser = $stmt->fetch();
-                
+
                 if ($newUser) {
                     // Set session đăng nhập
-                    $_SESSION['user_id'] = $newUser['id'];
-                    $_SESSION['user_name'] = $newUser['name'];
-                    $_SESSION['user_phone'] = $newUser['phone'];
+                    $_SESSION['user_id'] = $newUser['maND'];
+                    $_SESSION['user_name'] = $newUser['hoTen'];
+                    $_SESSION['user_phone'] = $newUser['sdt'];
                     $_SESSION['login_method'] = 'normal';
                     $_SESSION['login_time'] = time();
-                    
+
                     // Set thông báo thành công
                     $_SESSION['success_message'] = "🎉 Đăng ký thành công! Chào mừng bạn đến với TechCare.";
-                    
+
                     // Chuyển hướng về trang chủ
                     header("Location: " . url('home'));
                     exit;
@@ -100,7 +100,8 @@ include VIEWS_PATH . '/header.php';
                         <?php if (isset($_SESSION['success_message'])): ?>
                             <div class="alert alert-success d-flex align-items-center" role="alert">
                                 <i class="fas fa-check-circle me-2"></i>
-                                <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?>
+                                <?php echo $_SESSION['success_message'];
+                                unset($_SESSION['success_message']); ?>
                             </div>
                         <?php endif; ?>
 
@@ -112,16 +113,12 @@ include VIEWS_PATH . '/header.php';
                                     <span class="input-group-text bg-light">
                                         <i class="fas fa-user text-muted"></i>
                                     </span>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="fullname" 
-                                           name="fullname" 
-                                           value="<?php echo isset($_POST['fullname']) ? htmlspecialchars($_POST['fullname']) : ''; ?>" 
-                                           required
-                                           placeholder="Nhập họ và tên của bạn">
+                                    <input type="text" class="form-control" id="fullname" name="fullname"
+                                        value="<?php echo isset($_POST['fullname']) ? htmlspecialchars($_POST['fullname']) : ''; ?>"
+                                        required placeholder="Nhập họ và tên của bạn">
                                 </div>
                             </div>
-                            
+
                             <!-- Phone Input -->
                             <div class="mb-3">
                                 <label for="phone" class="form-label fw-semibold">Số điện thoại *</label>
@@ -129,18 +126,13 @@ include VIEWS_PATH . '/header.php';
                                     <span class="input-group-text bg-light">
                                         <i class="fas fa-phone text-muted"></i>
                                     </span>
-                                    <input type="tel" 
-                                           class="form-control" 
-                                           id="phone" 
-                                           name="phone" 
-                                           value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>" 
-                                           required
-                                           placeholder="Nhập số điện thoại"
-                                           pattern="(0[3|5|7|8|9])+([0-9]{8})">
+                                    <input type="tel" class="form-control" id="phone" name="phone"
+                                        value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>"
+                                        required placeholder="Nhập số điện thoại" pattern="(0[3|5|7|8|9])+([0-9]{8})">
                                 </div>
                                 <div class="form-text">Định dạng: 09xxxxxxxx hoặc 03xxxxxxxx</div>
                             </div>
-                            
+
                             <!-- Password Input -->
                             <div class="mb-3">
                                 <label for="password" class="form-label fw-semibold">Mật khẩu *</label>
@@ -148,19 +140,14 @@ include VIEWS_PATH . '/header.php';
                                     <span class="input-group-text bg-light">
                                         <i class="fas fa-lock text-muted"></i>
                                     </span>
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="password" 
-                                           name="password" 
-                                           required
-                                           placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
-                                           minlength="6">
+                                    <input type="password" class="form-control" id="password" name="password" required
+                                        placeholder="Nhập mật khẩu (ít nhất 6 ký tự)" minlength="6">
                                     <button class="btn btn-outline-secondary toggle-password" type="button">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <!-- Confirm Password Input -->
                             <div class="mb-4">
                                 <label for="confirm_password" class="form-label fw-semibold">Xác nhận mật khẩu *</label>
@@ -168,26 +155,21 @@ include VIEWS_PATH . '/header.php';
                                     <span class="input-group-text bg-light">
                                         <i class="fas fa-lock text-muted"></i>
                                     </span>
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="confirm_password" 
-                                           name="confirm_password" 
-                                           required
-                                           placeholder="Nhập lại mật khẩu"
-                                           minlength="6">
+                                    <input type="password" class="form-control" id="confirm_password"
+                                        name="confirm_password" required placeholder="Nhập lại mật khẩu" minlength="6">
                                     <button class="btn btn-outline-secondary toggle-password" type="button">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                 </div>
                                 <div class="form-text text-danger" id="password-match-message"></div>
                             </div>
-                            
+
                             <!-- Submit Button -->
                             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">
                                 <i class="fas fa-user-plus me-2"></i> Đăng ký
                             </button>
                         </form>
-                        
+
                         <!-- Divider -->
                         <div class="position-relative my-4">
                             <hr>
@@ -195,17 +177,19 @@ include VIEWS_PATH . '/header.php';
                                 Hoặc
                             </div>
                         </div>
-                        
+
                         <!-- Google Register -->
-                        <a href="<?php echo BASE_URL . '/auth/google-login.php'; ?>" class="btn btn-outline-danger w-100 mb-4">
+                        <a href="<?php echo BASE_URL . '/auth/google-login.php'; ?>"
+                            class="btn btn-outline-danger w-100 mb-4">
                             <i class="fab fa-google me-2"></i> Đăng ký với Google
                         </a>
-                        
+
                         <!-- Login Link -->
                         <div class="text-center">
                             <p class="text-muted mb-0">
-                                Đã có tài khoản? 
-                                <a href="<?php echo url('login'); ?>" class="text-decoration-none fw-semibold text-primary">
+                                Đã có tài khoản?
+                                <a href="<?php echo url('login'); ?>"
+                                    class="text-decoration-none fw-semibold text-primary">
                                     Đăng nhập ngay
                                 </a>
                             </p>
@@ -223,119 +207,119 @@ include VIEWS_PATH . '/footer.php';
 ?>
 
 <style>
-.min-vh-100 {
-    min-height: 100vh;
-}
-
-.card {
-    border: none;
-}
-
-.form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
-    border: none;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
-}
-
-.toggle-password {
-    border-left: none;
-}
-
-.input-group-text {
-    border-right: none;
-}
-
-.input-group .form-control {
-    border-left: none;
-}
-
-.input-group .form-control:focus {
-    border-color: #ced4da;
-    box-shadow: none;
-}
-
-.input-group:focus-within .input-group-text {
-    border-color: #0d6efd;
-}
-
-.password-match {
-    border-color: #198754 !important;
-}
-
-.password-mismatch {
-    border-color: #dc3545 !important;
-}
-
-/* Responsive */
-@media (max-width: 576px) {
-    .card-body {
-        padding: 2rem 1.5rem !important;
+    .min-vh-100 {
+        min-height: 100vh;
     }
-}
+
+    .card {
+        border: none;
+    }
+
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+    }
+
+    .toggle-password {
+        border-left: none;
+    }
+
+    .input-group-text {
+        border-right: none;
+    }
+
+    .input-group .form-control {
+        border-left: none;
+    }
+
+    .input-group .form-control:focus {
+        border-color: #ced4da;
+        box-shadow: none;
+    }
+
+    .input-group:focus-within .input-group-text {
+        border-color: #0d6efd;
+    }
+
+    .password-match {
+        border-color: #198754 !important;
+    }
+
+    .password-mismatch {
+        border-color: #dc3545 !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 2rem 1.5rem !important;
+        }
+    }
 </style>
 
 <script>
-// Real-time password confirmation check
-document.addEventListener('DOMContentLoaded', function() {
-    const password = document.getElementById('password');
-    const confirmPassword = document.getElementById('confirm_password');
-    const message = document.getElementById('password-match-message');
-    
-    function validatePassword() {
-        if (password.value === '' || confirmPassword.value === '') {
-            message.textContent = '';
-            confirmPassword.classList.remove('password-match', 'password-mismatch');
-            return;
-        }
-        
-        if (password.value === confirmPassword.value) {
-            message.textContent = '✓ Mật khẩu khớp';
-            message.className = 'form-text text-success';
-            confirmPassword.classList.add('password-match');
-            confirmPassword.classList.remove('password-mismatch');
-        } else {
-            message.textContent = '✗ Mật khẩu không khớp';
-            message.className = 'form-text text-danger';
-            confirmPassword.classList.add('password-mismatch');
-            confirmPassword.classList.remove('password-match');
-        }
-    }
-    
-    password.addEventListener('input', validatePassword);
-    confirmPassword.addEventListener('input', validatePassword);
-    
-    // Real-time phone number validation
-    document.getElementById('phone').addEventListener('input', function(e) {
-        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
-    });
-    
-    // Show/hide password functionality
-    const toggleButtons = document.querySelectorAll('.toggle-password');
-    
-    toggleButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const input = this.parentElement.querySelector('input');
-            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-            input.setAttribute('type', type);
-            
-            // Change icon
-            const icon = this.querySelector('i');
-            if (type === 'password') {
-                icon.className = 'fas fa-eye';
-            } else {
-                icon.className = 'fas fa-eye-slash';
+    // Real-time password confirmation check
+    document.addEventListener('DOMContentLoaded', function () {
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+        const message = document.getElementById('password-match-message');
+
+        function validatePassword() {
+            if (password.value === '' || confirmPassword.value === '') {
+                message.textContent = '';
+                confirmPassword.classList.remove('password-match', 'password-mismatch');
+                return;
             }
+
+            if (password.value === confirmPassword.value) {
+                message.textContent = '✓ Mật khẩu khớp';
+                message.className = 'form-text text-success';
+                confirmPassword.classList.add('password-match');
+                confirmPassword.classList.remove('password-mismatch');
+            } else {
+                message.textContent = '✗ Mật khẩu không khớp';
+                message.className = 'form-text text-danger';
+                confirmPassword.classList.add('password-mismatch');
+                confirmPassword.classList.remove('password-match');
+            }
+        }
+
+        password.addEventListener('input', validatePassword);
+        confirmPassword.addEventListener('input', validatePassword);
+
+        // Real-time phone number validation
+        document.getElementById('phone').addEventListener('input', function (e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+        });
+
+        // Show/hide password functionality
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const input = this.parentElement.querySelector('input');
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+
+                // Change icon
+                const icon = this.querySelector('i');
+                if (type === 'password') {
+                    icon.className = 'fas fa-eye';
+                } else {
+                    icon.className = 'fas fa-eye-slash';
+                }
+            });
         });
     });
-});
 </script>

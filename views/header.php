@@ -881,28 +881,35 @@ if (!defined('BASE_URL')) {
         const notification = new NotificationSystem();
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Xử lý thông báo từ session
-            <?php if (isset($_SESSION['success_message'])): ?>
-                setTimeout(() => {
-                    notification.success('<?php echo addslashes($_SESSION['success_message']); ?>');
-                }, 500);
-                <?php unset($_SESSION['success_message']); ?>
-            <?php endif; ?>
+    // Xử lý thông báo từ session
+    <?php if (isset($_SESSION['success_message'])): ?>
+        setTimeout(() => {
+            notification.success('<?php echo addslashes($_SESSION['success_message']); ?>');
+        }, 500);
+        <?php unset($_SESSION['success_message']); ?>
+    <?php endif; ?>
 
-            <?php if (isset($_SESSION['error'])): ?>
-                setTimeout(() => {
-                    notification.error('<?php echo addslashes($_SESSION['error']); ?>');
-                }, 500);
-                <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
+    <?php if (isset($_SESSION['error'])): ?>
+        setTimeout(() => {
+            notification.error('<?php echo addslashes($_SESSION['error']); ?>');
+        }, 500);
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
 
-            <?php if (isset($_SESSION['info_message'])): ?>
-                setTimeout(() => {
-                    notification.info('<?php echo addslashes($_SESSION['info_message']); ?>');
-                }, 500);
-                <?php unset($_SESSION['info_message']); ?>
-            <?php endif; ?>
-        });
+    <?php if (isset($_SESSION['warning_message'])): ?>
+        setTimeout(() => {
+            notification.warning('<?php echo addslashes($_SESSION['warning_message']); ?>');
+        }, 500);
+        <?php unset($_SESSION['warning_message']); ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['info_message'])): ?>
+        setTimeout(() => {
+            notification.info('<?php echo addslashes($_SESSION['info_message']); ?>');
+        }, 500);
+        <?php unset($_SESSION['info_message']); ?>
+    <?php endif; ?>
+});
 
         window.showNotification = notification;
 

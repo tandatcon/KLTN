@@ -1,5 +1,4 @@
 <?php
-
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../models/User.php';
 
@@ -27,6 +26,14 @@ $device_models = $_POST['device_models'] ?? [];
 $device_problems = $_POST['device_problems'] ?? [];
 $service_type = '0'; // 0 = sửa tại nhà
 
+// DEBUG: Kiểm tra dữ liệu nhận được
+error_log("=== DEBUG PROCESS BOOKING ===");
+error_log("Schedule type: " . $schedule_type);
+error_log("Customer address: " . $customer_address);
+error_log("Device types count: " . count($device_types));
+error_log("Device models count: " . count($device_models));
+error_log("Device problems count: " . count($device_problems));
+
 // VALIDATE DỮ LIỆU
 $errors = [];
 
@@ -53,21 +60,20 @@ if (empty($device_types)) {
 }
 
 // Xác định loại dịch vụ và validate thời gian
-$is_immediate_service = 0; // Mặc định là đặt lịch hẹn
+$is_immediate_service = 0;
 
 if ($schedule_type === 'today') {
-    // Đặt lịch hôm nay - sử dụng ngày giờ mặc định
+    // Đặt lịch hôm nay
     $is_immediate_service = 1;
-    $final_booking_date = $immediate_date; // Ngày hôm nay
-    $final_booking_time = $immediate_time; // Khung giờ chiều
+    $final_booking_date = $immediate_date;
+    $final_booking_time = $immediate_time;
     
-    // Validate ngày hôm nay
     if (empty($final_booking_date)) {
         $errors[] = "Lỗi hệ thống: Không xác định được ngày đặt lịch";
     }
     
 } else if ($schedule_type === 'appointment') {
-    // Đặt lịch hẹn - validate ngày giờ
+    // Đặt lịch hẹn
     $is_immediate_service = 0;
     $final_booking_date = $booking_date;
     $final_booking_time = $booking_time;
@@ -113,15 +119,15 @@ try {
     // Gọi phương thức thêm đơn dịch vụ
     $maDon = $userModel->themDonDichVu(
         $maKH,
-        $final_booking_date,    // Sử dụng ngày đã xác định
-        $final_booking_time,    // Sử dụng giờ đã xác định
+        $final_booking_date,
+        $final_booking_time,
         $problem_description,
         $customer_address,
         $device_types,
         $device_models,
         $device_problems,
         $service_type,
-        $is_immediate_service   // 1 = sửa ngay, 0 = đặt lịch hẹn
+        $is_immediate_service
     );
 
     // Thông báo thành công
@@ -160,8 +166,8 @@ try {
 function getTimeSlotText($time_slot) {
     $time_slots = [
         'sang' => 'Sáng (8:00 - 11:00)',
-        'chieu' => 'Chiều (13:00 - 17:00)', 
-        'toi' => 'Tối (18:00 - 21:00)'
+        'toi' => 'Tối (17:00 - 21:00)',
+        'chieu' => 'Chiều (13:00 - 17:00)'
     ];
     return $time_slots[$time_slot] ?? 'Không xác định';
 }

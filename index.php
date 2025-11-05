@@ -1,5 +1,5 @@
 <?php
-//error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 require_once 'config.php';
 require_once 'helpers.php';
 
@@ -68,6 +68,8 @@ if (strpos($page, 'quanly/') === 0) {
 $protectedCustomerPages = ['my_orders', 'datdichvu', 'my_order_detail'];
 if (in_array($page, $protectedCustomerPages)) {
     if (!isset($_SESSION['user_id'])) {
+        $_SESSION['warning_message']  = "Vui lòng đăng nhập để thực hiện thao tác!.";
+
         header('Location: ' . url('login'));
         exit();
     }

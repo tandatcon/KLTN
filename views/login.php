@@ -9,9 +9,7 @@ $pageTitle = "Đăng nhập - TechCare";
 
 // Xử lý đăng nhập
 $error = "";
-if(isset($_POST['submit'])){
-    echo 'hihi';
-}
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'];
@@ -20,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($phone) || empty($password)) {
         $error = 'Vui lòng điền đầy đủ thông tin.';
     } else {
-        $stmt = $db->prepare("SELECT maND, sdt, hoTen, password, login_method,maVaiTro FROM nguoidung WHERE sdt = ?");
+        $stmt = $db->prepare("SELECT maND, sdt, hoTen, password, login_method,maVaiTro FROM nguoidung WHERE sdt = ? and login_method='normal'");
         $stmt->execute([$phone]);
         $user = $stmt->fetch();
         
@@ -54,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Mật khẩu không đúng.';
             }
         } else {
-            $error = 'Số điện thoại không tồn tại.';
+            $error = 'Số điện thoại hoặc Mật khẩu không chín xác!';
         }
     }
 }
