@@ -1,6 +1,7 @@
 <?php
 // Đảm bảo biến $ctdd và $chiTietGia đã được định nghĩa
-if (!isset($ctdd) || !isset($chiTietGia)) return;
+if (!isset($ctdd) || !isset($chiTietGia))
+    return;
 ?>
 
 <form id="diagnosis_form_<?php echo $ctdd['maCTDon']; ?>">
@@ -15,8 +16,8 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
             </h6>
         </div>
         <div class="card-body">
-            <textarea class="form-control" id="diagnosis_<?php echo $ctdd['maCTDon']; ?>" name="diagnosis" rows="3" required
-                placeholder="Mô tả chi tiết tình trạng hư hỏng..."></textarea>
+            <textarea class="form-control" id="diagnosis_<?php echo $ctdd['maCTDon']; ?>" name="diagnosis" rows="3"
+                required placeholder="Mô tả chi tiết tình trạng hư hỏng..."></textarea>
         </div>
     </div>
 
@@ -50,19 +51,17 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
             </div>
 
             <!-- INPUT TÊN LỖI KHÁC -->
-            <div class="mb-3" id="custom_job_name_<?php echo $ctdd['maCTDon']; ?>"
-                style="display: none;">
+            <div class="mb-3" id="custom_job_name_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
                 <label class="form-label fw-semibold">Nhập tên lỗi:</label>
-                <input type="text" class="form-control"
-                    id="custom_job_input_<?php echo $ctdd['maCTDon']; ?>"
+                <input type="text" class="form-control" id="custom_job_input_<?php echo $ctdd['maCTDon']; ?>"
                     placeholder="Nhập tên lỗi khác...">
             </div>
 
             <!-- CHI PHÍ SỬA CHỮA -->
             <div class="mb-3">
                 <label class="form-label fw-semibold">Chi phí sửa chữa (VND):</label>
-                <input type="number" class="form-control"
-                    id="job_cost_<?php echo $ctdd['maCTDon']; ?>" placeholder="Nhập chi phí...">
+                <input type="number" class="form-control" id="job_cost_<?php echo $ctdd['maCTDon']; ?>"
+                    placeholder="Nhập chi phí...">
                 <div class="form-text" id="cost_hint_<?php echo $ctdd['maCTDon']; ?>">
                     Nhập chi phí sửa chữa
                 </div>
@@ -103,12 +102,10 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
                             </td>
                         </tr>
                     </tbody>
-                    <tfoot id="repair_jobs_footer_<?php echo $ctdd['maCTDon']; ?>"
-                        style="display: none;">
+                    <tfoot id="repair_jobs_footer_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
                         <tr class="table-secondary">
                             <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
-                            <td class="text-end fw-bold"
-                                id="total_table_<?php echo $ctdd['maCTDon']; ?>">0</td>
+                            <td class="text-end fw-bold" id="total_table_<?php echo $ctdd['maCTDon']; ?>">0</td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -129,10 +126,10 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
                     <div class="form-text">Tổng chi phí các công việc đã chọn</div>
                 </div>
                 <div class="col-md-6 text-end">
-                    <span class="h4 text-primary fw-bold"
-                        id="total_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</span>
-                    <input type="hidden" name="estimated_cost"
-                        id="total_estimated_cost_<?php echo $ctdd['maCTDon']; ?>" value="0">
+                    <span class="h4 text-primary fw-bold" id="total_display_<?php echo $ctdd['maCTDon']; ?>">0
+                        VND</span>
+                    <input type="hidden" name="estimated_cost" id="total_estimated_cost_<?php echo $ctdd['maCTDon']; ?>"
+                        value="0">
                 </div>
             </div>
         </div>
@@ -151,24 +148,21 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="radio" name="decision_<?php echo $ctdd['maCTDon']; ?>"
                                 id="agree_<?php echo $ctdd['maCTDon']; ?>" value="1" required>
-                            <label class="form-check-label text-success"
-                                for="agree_<?php echo $ctdd['maCTDon']; ?>">
+                            <label class="form-check-label text-success" for="agree_<?php echo $ctdd['maCTDon']; ?>">
                                 <i class="fas fa-check me-1"></i>Đồng ý sửa chữa
                             </label>
                         </div>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="radio" name="decision_<?php echo $ctdd['maCTDon']; ?>"
                                 id="disagree_<?php echo $ctdd['maCTDon']; ?>" value="2">
-                            <label class="form-check-label text-danger"
-                                for="disagree_<?php echo $ctdd['maCTDon']; ?>">
+                            <label class="form-check-label text-danger" for="disagree_<?php echo $ctdd['maCTDon']; ?>">
                                 <i class="fas fa-times me-1"></i>Không đồng ý
                             </label>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-3" id="reasonSection_<?php echo $ctdd['maCTDon']; ?>"
-                    style="display: none;">
+                <div class="mb-3" id="reasonSection_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
                     <label class="form-label fw-bold">Lý do không đồng ý:</label>
                     <textarea class="form-control" id="reason_<?php echo $ctdd['maCTDon']; ?>" name="reason" rows="2"
                         placeholder="Nhập lý do khách hàng không đồng ý sửa chữa..."></textarea>
@@ -179,8 +173,7 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
 
     <!-- NÚT LƯU -->
     <div class="text-center">
-        <button type="button" class="btn btn-success btn-lg"
-            onclick="saveDiagnosis('<?php echo $ctdd['maCTDon']; ?>')">
+        <button type="button" class="btn btn-success btn-lg" onclick="saveDiagnosis('<?php echo $ctdd['maCTDon']; ?>')">
             <i class="fas fa-save me-2"></i>Lưu Chẩn Đoán & Báo Giá
         </button>
     </div>
@@ -188,17 +181,17 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
 
 <script>
     // Xử lý hiển thị/ẩn lý do khi chọn không đồng ý
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const disagreeRadio = document.getElementById('disagree_<?php echo $ctdd['maCTDon']; ?>');
         const agreeRadio = document.getElementById('agree_<?php echo $ctdd['maCTDon']; ?>');
         const reasonSection = document.getElementById('reasonSection_<?php echo $ctdd['maCTDon']; ?>');
 
         if (disagreeRadio && reasonSection) {
-            disagreeRadio.addEventListener('change', function() {
+            disagreeRadio.addEventListener('change', function () {
                 reasonSection.style.display = this.checked ? 'block' : 'none';
             });
 
-            agreeRadio.addEventListener('change', function() {
+            agreeRadio.addEventListener('change', function () {
                 reasonSection.style.display = 'none';
             });
         }

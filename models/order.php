@@ -429,15 +429,16 @@ public function getKTVWeeklySchedule($ktvId, $weekStartDate) {
 // Lấy đơn hôm nay được phân công cho KTV
 public function getDonHomNayByKTV($ktvId) {
     try {
-        $sql = "SELECT dd.*, ctdd.id_nhanvien, kh.hoTen as customer_name, kh.sdt,tb.tenThietBi
-                FROM dondichvu dd
-                JOIN chitietdondichvu ctdd ON dd.maDon = ctdd.maDon
-                JOIN nguoidung kh ON dd.user_id = kh.maND
-                JOIN thietbi tb on tb.maThietBi=ctdd.loai_ThietBi
-                WHERE ctdd.id_nhanvien = ? 
-                AND DATE(dd.ngayDat) = CURDATE()
-                AND dd.trangThai = '1'
-                ORDER BY dd.ngayDat DESC";
+        $sql = "SELECT DISTINCT dd.maDon, dd.*,COUNT(ctdd.loai_thietbi) as loai_thietbi, kh.hoTen as customer_name, kh.sdt
+        FROM dondichvu dd
+        JOIN chitietdondichvu ctdd ON dd.maDon = ctdd.maDon
+        JOIN nguoidung kh ON dd.user_id = kh.maND
+        
+        WHERE ctdd.id_nhanvien = ? 
+        AND DATE(dd.ngayDat) = CURDATE()
+        AND dd.trangThai = '1'
+        ORDER BY dd.ngayDat DESC
+        LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$ktvId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

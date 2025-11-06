@@ -77,9 +77,10 @@ if ($statusFilter !== 'all') {
                                 <tr>
                                     <th width="80">Mã đơn</th>
                                     <th width="120">Khách hàng</th>
-                                    <th>Thiết bị</th>
+                                    <th>Số lượng thiết bị</th>
                                     <th>Địa điểm</th>
                                     <th width="120">Loại</th>
+                                    <th width="100">Chi tiết</th>
                                     <th width="100">Thao tác</th>
                                 </tr>
                             </thead>
@@ -93,8 +94,7 @@ if ($statusFilter !== 'all') {
                                         <?php echo htmlspecialchars($order['customer_name'] ?? 'N/A'); ?>
                                     </td>
                                     <td>
-                                        <div class="fw-bold"><?php echo htmlspecialchars($order['tenThietBi'] ?? 'N/A'); ?></div>
-                                        <small class="text-muted"><?php echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?></small>
+                                        <div class="fw-bold"><?php  echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?></div>
                                     </td>
                                     <td>
                                         <?php echo htmlspecialchars($order['diemhen'] ?? 'N/A'); ?>
@@ -107,10 +107,18 @@ if ($statusFilter !== 'all') {
                                         <?php endif; ?>
                                     </td>
                                     <td>
+                                    <a href="<?php echo url('KTV/xemChiTietDon?id=' . $order['maDon']); ?>" 
+                                               class="btn btn-primary btn-sm">
+                                               <i class="fas fa-eye me-1"></i>Chi tiết
+                                            </a>
+                                    </td>
+                                    <td>
                                         <a href="<?php echo url('KTV/thuchienDDV?id=' . $order['maDon']); ?>" 
                                            class="btn btn-primary btn-sm">
                                             <i class="fas fa-play me-1"></i>Thực hiện
                                         </a>
+                                        
+                                        
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

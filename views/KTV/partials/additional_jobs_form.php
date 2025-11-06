@@ -1,5 +1,6 @@
 <?php
-if (!isset($ctdd) || !isset($chiTietGia)) return;
+if (!isset($ctdd) || !isset($chiTietGia))
+    return;
 ?>
 
 <div class="card border-primary mb-3">
@@ -31,19 +32,16 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
         </div>
 
         <!-- INPUT TÊN LỖI KHÁC -->
-        <div class="mb-3" id="custom_job_name_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
-            style="display: none;">
+        <div class="mb-3" id="custom_job_name_phatsinh_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
             <label class="form-label fw-semibold">Nhập tên lỗi phát sinh khác:</label>
-            <input type="text" class="form-control"
-                id="custom_job_input_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
+            <input type="text" class="form-control" id="custom_job_input_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
                 placeholder="Nhập tên lỗi khác...">
         </div>
 
         <!-- CHI PHÍ SỬA CHỮA -->
         <div class="mb-3">
             <label class="form-label fw-semibold">Chi phí sửa chữa (VND):</label>
-            <input type="number" class="form-control"
-                id="job_cost_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
+            <input type="number" class="form-control" id="job_cost_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
                 placeholder="Nhập chi phí...">
             <div class="form-text" id="cost_hint_phatsinh_<?php echo $ctdd['maCTDon']; ?>">
                 Nhập chi phí sửa chữa
@@ -85,49 +83,47 @@ if (!isset($ctdd) || !isset($chiTietGia)) return;
                         </td>
                     </tr>
                 </tbody>
-                <tfoot id="repair_jobs_phatsinh_footer_<?php echo $ctdd['maCTDon']; ?>"
-                    style="display: none;">
+                <tfoot id="repair_jobs_phatsinh_footer_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
                     <tr class="table-secondary">
                         <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
-                        <td class="text-end fw-bold"
-                            id="total_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0</td>
+                        <td class="text-end fw-bold" id="total_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0</td>
                         <td></td>
                     </tr>
                 </tfoot>
             </table>
+            <div align="center" style="margin:10px;">
+                <button type="button" class="btn btn-success btn-lg"
+                    onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">
+                    <i class="fas fa-save me-2"></i>Lưu các công việc phát sinh
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- NÚT LƯU CÔNG VIỆC PHÁT SINH -->
-<div class="text-center mb-4">
-    <button type="button" class="btn btn-success btn-lg"
-        onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">
-        <i class="fas fa-save me-2"></i>Lưu các công việc phát sinh
-    </button>
-</div>
+
 
 <script>
-// Khởi tạo mảng công việc phát sinh cho thiết bị này
-if (typeof danhSachCongViecPhatSinh === 'undefined') {
-    danhSachCongViecPhatSinh = {};
-}
-danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] = [];
-
-// Gắn sự kiện submit form
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('save_additional_jobs_form_<?php echo $ctdd['maCTDon']; ?>');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const inputJSON = document.getElementById('danh_sach_cong_viec_phat_sinh_json_<?php echo $ctdd['maCTDon']; ?>');
-            if (inputJSON) {
-                const danhSach = danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] || [];
-                inputJSON.value = JSON.stringify(danhSach);
-            }
-        });
+    // Khởi tạo mảng công việc phát sinh cho thiết bị này
+    if (typeof danhSachCongViecPhatSinh === 'undefined') {
+        danhSachCongViecPhatSinh = {};
     }
+    danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] = [];
 
-    // Hiển thị danh sách ban đầu
-    hienThiDanhSachCongViecPhatSinh('<?php echo $ctdd['maCTDon']; ?>');
-});
+    // Gắn sự kiện submit form
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('save_additional_jobs_form_<?php echo $ctdd['maCTDon']; ?>');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                const inputJSON = document.getElementById('danh_sach_cong_viec_phat_sinh_json_<?php echo $ctdd['maCTDon']; ?>');
+                if (inputJSON) {
+                    const danhSach = danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] || [];
+                    inputJSON.value = JSON.stringify(danhSach);
+                }
+            });
+        }
+
+        // Hiển thị danh sách ban đầu
+        hienThiDanhSachCongViecPhatSinh('<?php echo $ctdd['maCTDon']; ?>');
+    });
 </script>

@@ -137,22 +137,22 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                 <td><?php echo $donHang['noiSuaChua'] == 0 ? "🏠 Tại nhà" : "🏪 Tại cửa hàng"; ?></td>
                             </tr>
                             <!-- Trong phần thông tin đơn hàng -->
-<tr>
-    <td><strong>Trạng thái:</strong></td>
-    <td>
-        <span class="badge bg-<?php
-        echo $donHang['trangThai'] == 1 ? 'warning' :
-            ($donHang['trangThai'] == 2 ? 'info' :
-            ($donHang['trangThai'] == 3 ? 'primary' : 'success'));
-        ?>">
-            <?php 
-            echo $donHang['trangThai'] == 1 ? 'Đã tiếp nhận' :
-                ($donHang['trangThai'] == 2 ? 'Đang sửa chữa' :
-                ($donHang['trangThai'] == 3 ? 'Đang thực hiện' : 'Hoàn thành'));
-            ?>
-        </span>
-    </td>
-</tr>
+                            <tr>
+                                <td><strong>Trạng thái:</strong></td>
+                                <td>
+                                    <span class="badge bg-<?php
+                                    echo $donHang['trangThai'] == 1 ? 'warning' :
+                                        ($donHang['trangThai'] == 2 ? 'info' :
+                                            ($donHang['trangThai'] == 3 ? 'primary' : 'success'));
+                                    ?>">
+                                        <?php
+                                        echo $donHang['trangThai'] == 1 ? 'Đã tiếp nhận' :
+                                            ($donHang['trangThai'] == 2 ? 'Đang sửa chữa' :
+                                                ($donHang['trangThai'] == 3 ? 'Đang thực hiện' : 'Hoàn thành'));
+                                        ?>
+                                    </span>
+                                </td>
+                            </tr>
                         </table>
                     </div>
                 </div>
@@ -161,33 +161,32 @@ foreach ($chiTietDonDichVu as $ctdd) {
 
         <!-- TỔNG BÁO GIÁ -->
         <?php if ($tongBaoGia > 0): ?>
-    <div class="card mb-4">
-        <div class="card-body py-3">
-            <div class="row align-items-center">
-                <div class="col-md-6 text-center text-md-start">
-                    <strong class="fs-5">Tổng báo giá: <?php echo number_format($tongBaoGia); ?> VND</strong>
-                </div>
-                <div class="col-md-6 text-center text-md-end">
-                    <?php if ($donHang['trangThai'] == 4): ?>
-                        <div class="d-flex justify-content-center justify-content-md-end gap-2 flex-wrap">
-                            <!-- Nút In Hóa Đơn -->
-                            <button type="button" class="btn btn-outline-primary btn-print-invoice" 
-                                    onclick="printInvoice()">
-                                <i class="fas fa-print me-2"></i>In Hóa Đơn
-                            </button>
-                            
-                            <!-- Nút Thanh Toán -->
-                            <button type="button" class="btn btn-success btn-payment" 
-                                    onclick="processPayment()">
-                                <i class="fas fa-credit-card me-2"></i>Thanh Toán
-                            </button>
+            <div class="card mb-4">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center text-md-start">
+                            <strong class="fs-5">Tổng báo giá: <?php echo number_format($tongBaoGia); ?> VND</strong>
                         </div>
-                    <?php endif; ?>
+                        <div class="col-md-6 text-center text-md-end">
+                            <?php if ($donHang['trangThai'] == 4): ?>
+                                <div class="d-flex justify-content-center justify-content-md-end gap-2 flex-wrap">
+                                    <!-- Nút In Hóa Đơn -->
+                                    <button type="button" class="btn btn-outline-primary btn-print-invoice"
+                                        onclick="printInvoice()">
+                                        <i class="fas fa-print me-2"></i>In Hóa Đơn
+                                    </button>
+
+                                    <!-- Nút Thanh Toán -->
+                                    <button type="button" class="btn btn-success btn-payment" onclick="processPayment()">
+                                        <i class="fas fa-credit-card me-2"></i>Thanh Toán
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-<?php endif; ?>
+        <?php endif; ?>
 
         <!-- DANH SÁCH THIẾT BỊ CẦN SỬA -->
         <div class="card mb-4">
@@ -225,7 +224,7 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                         <span class="badge bg-info">Đang sửa chữa</span>
                                     <?php elseif ($trangThaiThietBi == 3): ?>
                                         <span class="badge bg-success">Đã hoàn thành</span>
-                                        <?php elseif ($trangThaiThietBi == 4): ?>
+                                    <?php elseif ($trangThaiThietBi == 4): ?>
                                         <span class="badge bg-danger">Đã bị hủy</span>
                                     <?php else: ?>
                                         <span class="badge bg-secondary">Chưa chẩn đoán</span>
@@ -316,7 +315,8 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                             <?php else: ?>
                                                 <!-- FORM UPLOAD MỚI ĐƠN GIẢN -->
                                                 <form method="POST" enctype="multipart/form-data" class="ajax-upload-form">
-                                                    <input type="hidden" name="ctdon_id" value="<?php echo $ctdd['maCTDon']; ?>">
+                                                    <input type="hidden" name="ctdon_id"
+                                                        value="<?php echo $ctdd['maCTDon']; ?>">
                                                     <input type="hidden" name="evidence_type" value="arrival">
 
                                                     <div class="upload-area-simple"
@@ -382,7 +382,8 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                             <?php else: ?>
                                                 <!-- FORM UPLOAD MỚI ĐƠN GIẢN -->
                                                 <form method="POST" enctype="multipart/form-data" class="ajax-upload-form">
-                                                    <input type="hidden" name="ctdon_id" value="<?php echo $ctdd['maCTDon']; ?>">
+                                                    <input type="hidden" name="ctdon_id"
+                                                        value="<?php echo $ctdd['maCTDon']; ?>">
                                                     <input type="hidden" name="evidence_type" value="device">
 
                                                     <div class="upload-area-simple"
@@ -438,11 +439,15 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <strong>Chẩn đoán:</strong>
-                                                    <p class="text-muted"><?php echo htmlspecialchars($chanDoanThietBi['tinh_trang_thuc_te']); ?></p>
+                                                    <p class="text-muted">
+                                                        <?php echo htmlspecialchars($chanDoanThietBi['tinh_trang_thuc_te']); ?>
+                                                    </p>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <strong>Báo giá dự kiến:</strong>
-                                                    <p class="text-success fw-bold"><?php echo number_format($chanDoanThietBi['chi_phi']); ?> VND</p>
+                                                    <p class="text-success fw-bold">
+                                                        <?php echo number_format($chanDoanThietBi['chi_phi']); ?> VND
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -454,9 +459,11 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                             <strong>Quyết định khách hàng:</strong>
                                             <p class="mb-0">
                                                 <?php if ($quyetDinhSC == 1): ?>
-                                                    <span class="text-success"><i class="fas fa-check me-1"></i>Đã đồng ý sửa chữa</span>
+                                                    <span class="text-success"><i class="fas fa-check me-1"></i>Đã đồng ý sửa
+                                                        chữa</span>
                                                 <?php elseif ($quyetDinhSC == 2): ?>
-                                                    <span class="text-danger"><i class="fas fa-times me-1"></i>Không đồng ý sửa chữa</span>
+                                                    <span class="text-danger"><i class="fas fa-times me-1"></i>Không đồng ý sửa
+                                                        chữa</span>
                                                     <?php if (!empty($ctdd['lyDoHuy'])): ?>
                                                         <br><strong>Lý do:</strong> <?php echo htmlspecialchars($ctdd['lyDoHuy']); ?>
                                                     <?php endif; ?>
@@ -465,29 +472,7 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                         </div>
                                     <?php endif; ?>
 
-                                    <!-- Nút bắt đầu vaf kết thúc -->
-                                    <?php if ($quyetDinhSC == 1): ?>
-                                        <div class="service-action-buttons text-center mb-4" id="service-buttons-<?php echo $ctdd['maCTDon']; ?>">
-                                            <?php if ($trangThaiThietBi == 1): ?>
-                                                <button type="button" 
-                                                        class="btn btn-action-large btn-start"
-                                                        onclick="handleServiceAction('start_service', '<?php echo $ctdd['maCTDon']; ?>', '<?php echo htmlspecialchars($ctdd['tenThietBi']); ?>')">
-                                                    <i class="fas fa-play-circle me-2"></i>Bắt Đầu Sửa Chữa
-                                                </button>
-                                            <?php elseif ($trangThaiThietBi == 2): ?>
-                                                <button type="button" 
-                                                        class="btn btn-action-large btn-stop"
-                                                        onclick="handleServiceAction('complete_service', '<?php echo $ctdd['maCTDon']; ?>', '<?php echo htmlspecialchars($ctdd['tenThietBi']); ?>')">
-                                                    <i class="fas fa-stop-circle me-2"></i>Kết Thúc Sửa Chữa
-                                                </button>
-                                            <?php elseif ($trangThaiThietBi == 3): ?>
-                                                <div class="alert alert-success mb-0">
-                                                    <i class="fas fa-check-circle me-2"></i>
-                                                    <strong>Đã hoàn thành sửa chữa</strong>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endif; ?>
+
 
                                     <!-- DANH SÁCH CÔNG VIỆC SỬA CHỮA -->
                                     <?php if (!empty($chiTietSuaChuaThietBi)): ?>
@@ -518,22 +503,26 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                                                     <tr>
                                                                         <td class="text-center"><?php echo $idx + 1; ?></td>
                                                                         <td><?php echo htmlspecialchars($chiTiet['loiSuaChua']); ?></td>
-                                                                        <td class="text-end"><?php echo number_format($chiTiet['chiPhi']); ?></td>
+                                                                        <td class="text-end">
+                                                                            <?php echo number_format($chiTiet['chiPhi']); ?>
+                                                                        </td>
                                                                         <td class="text-center">
                                                                             <?php echo $chiTiet['loai']; ?>
                                                                         </td>
                                                                     </tr>
-                                                                <?php endforeach; 
+                                                                <?php endforeach;
                                                             } ?>
                                                         </tbody>
                                                         <?php if (!empty($chiTietSuaChuaThietBi)): ?>
-                                                        <tfoot>
-                                                            <tr class="table-secondary">
-                                                                <td colspan="2" class="text-end fw-bold">Tổng cộng:</td>
-                                                                <td class="text-end fw-bold"><?php echo number_format($tongThietBi); ?></td>
-                                                                <td></td>
-                                                            </tr>
-                                                        </tfoot>
+                                                            <tfoot>
+                                                                <tr class="table-secondary">
+                                                                    <td colspan="2" class="text-end fw-bold">Tổng cộng:</td>
+                                                                    <td class="text-end fw-bold">
+                                                                        <?php echo number_format($tongThietBi); ?>
+                                                                    </td>
+                                                                    <td></td>
+                                                                </tr>
+                                                            </tfoot>
                                                         <?php endif; ?>
                                                     </table>
                                                 </div>
@@ -541,10 +530,41 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                         </div>
                                     <?php endif; ?>
 
+
+
                                     <!-- THÊM CÔNG VIỆC PHÁT SINH (Nếu đang sửa chữa) -->
                                     <?php if ($quyetDinhSC == 1 && $trangThaiThietBi == 2): ?>
                                         <div id="additional-jobs-<?php echo $ctdd['maCTDon']; ?>">
                                             <?php include 'partials/additional_jobs_form.php'; ?>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Nút bắt đầu vaf kết thúc -->
+                                    <?php if ($quyetDinhSC == 1): ?>
+                                        <div id="service-buttons-<?php echo $ctdd['maCTDon']; ?>" align="center">
+                                            <?php if ($trangThaiThietBi == 1): ?>
+                                                <button type="button" class="btn btn-action-large btn-start"
+                                                    onclick="handleServiceAction('start_service', '<?php echo $ctdd['maCTDon']; ?>', '<?php echo htmlspecialchars($ctdd['tenThietBi']); ?>')">
+                                                    <i class="fas fa-play-circle me-2"></i>Bắt Đầu Sửa Chữa
+                                                </button>
+                                            <?php elseif ($trangThaiThietBi == 2): ?>
+                                                <button type="button" class="btn btn-action-large btn-stop "
+                                                    onclick="handleServiceAction('complete_service', '<?php echo $ctdd['maCTDon']; ?>', '<?php echo htmlspecialchars($ctdd['tenThietBi']); ?>')">
+                                                    <i class="fas fa-stop-circle me-2"></i>Kết Thúc Sửa Chữa
+                                                </button>
+                                            <?php elseif ($trangThaiThietBi == 3): ?>
+                                                <div class="container">
+                                                    <div class="row justify-content-center">
+                                                        <div class="col-12 col-md-6 col-lg-5">
+                                                            <div class="alert alert-success mb-0 text-center">
+                                                                <i class="fas fa-check-circle me-2"></i>
+                                                                <strong>Đã hoàn thành sửa chữa</strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -575,9 +595,9 @@ foreach ($chiTietDonDichVu as $ctdd) {
     </div>
 </div>
 
-<?php 
+<?php
 ob_end_flush();
-include __DIR__ . '/../footer.php'; 
+include __DIR__ . '/../footer.php';
 ?>
 
 <!-- STYLES -->
@@ -706,7 +726,9 @@ include __DIR__ . '/../footer.php';
     }
 
     @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     @media (max-width: 576px) {
@@ -731,39 +753,10 @@ include __DIR__ . '/../footer.php';
         danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] = [];
     <?php endforeach; ?>
 
-    // Hàm hiển thị thông báo
-    function showAlert(message, type = 'info') {
-        const alertClass = {
-            'success': 'alert-success',
-            'warning': 'alert-warning', 
-            'info': 'alert-info',
-            'danger': 'alert-danger'
-        }[type] || 'alert-info';
-
-        const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                <i class="fas fa-${type === 'success' ? 'check' : 'info'}-circle me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-
-        const container = document.getElementById('ajax-alert-container');
-        container.innerHTML = alertHtml;
-
-        // Tự động ẩn sau 5 giây
-        setTimeout(() => {
-            const alert = container.querySelector('.alert');
-            if (alert) {
-                alert.remove();
-            }
-        }, 5000);
-    }
-
     // Hàm xử lý lỗi
     function handleError(error) {
         console.error('Lỗi:', error);
-        showAlert('Có lỗi xảy ra khi xử lý', 'danger');
+        showConfirm('Có lỗi xảy ra khi xử lý', 'Lỗi');
     }
 
     // AJAX Diagnosis Handler
@@ -776,17 +769,17 @@ include __DIR__ . '/../footer.php';
 
         // Validation
         if (!chanDoan || !chanDoan.trim()) {
-            showAlert('Vui lòng nhập chẩn đoán!', 'warning');
+            showConfirm('Vui lòng nhập chẩn đoán!', 'Thông báo');
             return;
         }
 
         if (!chiPhiDuKien || parseFloat(chiPhiDuKien) <= 0) {
-            showAlert('Vui lòng thêm ít nhất một công việc sửa chữa!', 'warning');
+            showConfirm('Vui lòng thêm ít nhất một công việc sửa chữa!', 'Thông báo');
             return;
         }
 
         if (!quyetDinh) {
-            showAlert('Vui lòng chọn quyết định sửa chữa!', 'warning');
+            showConfirm('Vui lòng chọn quyết định sửa chữa!', 'Thông báo');
             return;
         }
 
@@ -814,10 +807,10 @@ include __DIR__ . '/../footer.php';
             const result = await response.json();
 
             if (result.success) {
-                showAlert(result.message, 'success');
+                showConfirm(result.message, 'Thành công');
                 updateUIAfterDiagnosis(maCTDon, result.quyetDinhSC);
             } else {
-                showAlert(result.message, 'danger');
+                showConfirm(result.message, 'Lỗi');
                 button.innerHTML = originalText;
                 button.disabled = false;
             }
@@ -833,10 +826,10 @@ include __DIR__ . '/../footer.php';
     function updateUIAfterDiagnosis(maCTDon, quyetDinhSC) {
         const deviceCard = document.querySelector(`[data-mactdon="${maCTDon}"]`);
         const diagnosisForm = document.getElementById(`diagnosis-form-${maCTDon}`);
-        
+
         if (diagnosisForm) {
             diagnosisForm.style.opacity = '0.5';
-            
+
             setTimeout(() => {
                 diagnosisForm.innerHTML = `
                     <div class="alert alert-info">
@@ -844,7 +837,7 @@ include __DIR__ . '/../footer.php';
                         Đang cập nhật thông tin...
                     </div>
                 `;
-                
+
                 // Reload phần thiết bị sau 2 giây
                 setTimeout(() => {
                     location.reload();
@@ -854,65 +847,103 @@ include __DIR__ . '/../footer.php';
     }
 
     // AJAX Service Action Handler
-    async function handleServiceAction(action, maCTDon, deviceName) {
-        let actionText = '';
-        let confirmMessage = '';
-        
-        switch (action) {
-            case 'start_service':
-                actionText = 'bắt đầu sửa chữa';
-                confirmMessage = `Bạn có chắc chắn muốn bắt đầu sửa chữa thiết bị "${deviceName}"?`;
-                break;
-            case 'complete_service':
-                actionText = 'kết thúc sửa chữa';
-                confirmMessage = `Bạn có chắc chắn muốn kết thúc sửa chữa thiết bị "${deviceName}"?`;
-                break;
-            default:
-                return;
-        }
-        
-        if (!confirm(confirmMessage)) {
+async function handleServiceAction(action, maCTDon, deviceName) {
+    let actionText = '';
+    let confirmMessage = '';
+
+    switch (action) {
+        case 'start_service':
+            actionText = 'bắt đầu sửa chữa';
+            confirmMessage = `Bạn có chắc chắn muốn bắt đầu sửa chữa thiết bị "${deviceName}"?`;
+            break;
+        case 'complete_service':
+            actionText = 'kết thúc sửa chữa';
+            confirmMessage = `Bạn có chắc chắn muốn kết thúc sửa chữa thiết bị "${deviceName}"?`;
+            break;
+        default:
             return;
+    }
+
+    // Sử dụng showConfirm với 2 callback
+    showConfirm(
+        confirmMessage,
+        'Xác nhận',
+        function () {
+            // Xác nhận - thực hiện AJAX call
+            performServiceAction(action, maCTDon, deviceName);
+        },
+        function () {
+            // Hủy bỏ - không làm gì
+            console.log('Người dùng đã hủy thao tác ' + actionText);
         }
-        
-        const button = document.querySelector(`[onclick="handleServiceAction('${action}', '${maCTDon}', '${deviceName}')"]`);
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
-        button.disabled = true;
-        
-        try {
-            const formData = new FormData();
-            formData.append('action', action);
-            formData.append('maDon', '<?php echo $maDon; ?>');
-            formData.append('maCTDon', maCTDon);
-            
-            const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showAlert(result.message, 'success');
-                updateUIAfterServiceAction(maCTDon, action);
-            } else {
-                showAlert(result.message, 'danger');
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }
-            
-        } catch (error) {
-            handleError(error);
+    );
+}
+
+// Hàm thực hiện AJAX call
+async function performServiceAction(action, maCTDon, deviceName) {
+    const button = document.querySelector(`[onclick="handleServiceAction('${action}', '${maCTDon}', '${deviceName}')"]`);
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+    button.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('maDon', '<?php echo $maDon; ?>');
+        formData.append('maCTDon', maCTDon);
+
+        const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showConfirm(
+                result.message,
+                'Thành công',
+                function() {
+                    updateUIAfterServiceAction(maCTDon, action);
+                }
+            );
+        } else {
+            showConfirm(result.message, 'Lỗi');
             button.innerHTML = originalText;
             button.disabled = false;
         }
+
+    } catch (error) {
+        handleError(error);
+        button.innerHTML = originalText;
+        button.disabled = false;
     }
+}
+
+// Cập nhật giao diện sau khi thực hiện hành động dịch vụ
+function updateUIAfterServiceAction(maCTDon, action) {
+    const serviceButtons = document.getElementById(`service-buttons-${maCTDon}`);
+
+    if (serviceButtons) {
+        serviceButtons.style.opacity = '0.5';
+        serviceButtons.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-spinner fa-spin me-2"></i>
+                Đang cập nhật trạng thái...
+            </div>
+        `;
+
+        // Reload phần thiết bị sau 2 giây
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+    }
+}
 
     // Cập nhật giao diện sau khi thực hiện hành động dịch vụ
     function updateUIAfterServiceAction(maCTDon, action) {
         const serviceButtons = document.getElementById(`service-buttons-${maCTDon}`);
-        
+
         if (serviceButtons) {
             serviceButtons.style.opacity = '0.5';
             serviceButtons.innerHTML = `
@@ -921,7 +952,7 @@ include __DIR__ . '/../footer.php';
                     Đang cập nhật trạng thái...
                 </div>
             `;
-            
+
             // Reload phần thiết bị sau 2 giây
             setTimeout(() => {
                 location.reload();
@@ -935,19 +966,19 @@ include __DIR__ . '/../footer.php';
         const file = fileInput.files[0];
 
         if (!file) {
-            showAlert('Vui lòng chọn file ảnh!', 'warning');
+            showConfirm('Vui lòng chọn file ảnh!', 'Thông báo');
             return;
         }
 
         // Kiểm tra kích thước file
         if (file.size > 5 * 1024 * 1024) {
-            showAlert('Kích thước file vượt quá 5MB. Vui lòng chọn file nhỏ hơn.', 'warning');
+            showConfirm('Kích thước file vượt quá 5MB. Vui lòng chọn file nhỏ hơn.', 'Thông báo');
             return;
         }
 
         // Kiểm tra loại file
         if (!file.type.match('image.*')) {
-            showAlert('Vui lòng chọn file ảnh hợp lệ (PNG, JPG, GIF).', 'warning');
+            showConfirm('Vui lòng chọn file ảnh hợp lệ (PNG, JPG, GIF).', 'Thông báo');
             return;
         }
 
@@ -972,13 +1003,13 @@ include __DIR__ . '/../footer.php';
             const result = await response.json();
 
             if (result.success) {
-                showAlert(result.message, 'success');
+                showConfirm(result.message, 'Thành công');
                 // Reload phần upload sau 1.5 giây
                 setTimeout(() => {
                     location.reload();
                 }, 1500);
             } else {
-                showAlert(result.message, 'danger');
+                showConfirm(result.message, 'Lỗi');
                 button.innerHTML = originalText;
                 button.disabled = false;
             }
@@ -1023,6 +1054,22 @@ include __DIR__ . '/../footer.php';
         }
     }
 
+    // Hàm kiểm tra chi phí có nằm trong khoảng giá hay không
+    function validateCostInRange(cost, rangeString) {
+        if (!rangeString || rangeString === 'Không có' || rangeString === 'Tự nhập') {
+            return true;
+        }
+
+        // Phân tích chuỗi khoảng giá (ví dụ: "100.000 - 500.000 VND")
+        const rangeMatch = rangeString.match(/(\d+(?:\.\d+)*)\s*-\s*(\d+(?:\.\d+)*)/);
+        if (!rangeMatch) return true;
+
+        const minCost = parseInt(rangeMatch[1].replace(/\./g, ''));
+        const maxCost = parseInt(rangeMatch[2].replace(/\./g, ''));
+
+        return cost >= minCost && cost <= maxCost;
+    }
+
     function addRepairJob(maThietBi) {
         const select = document.getElementById('job_select_' + maThietBi);
         const inputLoiKhac = document.getElementById('custom_job_input_' + maThietBi);
@@ -1033,8 +1080,9 @@ include __DIR__ . '/../footer.php';
         let chiPhiCongViec = inputChiPhi.value;
         let khoangGia = '';
 
+        // Kiểm tra chi phí
         if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
-            showAlert('Vui lòng nhập chi phí hợp lệ!', 'warning');
+            showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
             inputChiPhi.focus();
             return;
         }
@@ -1045,15 +1093,26 @@ include __DIR__ . '/../footer.php';
             tenCongViec = inputLoiKhac.value.trim();
             khoangGia = 'Tự nhập';
             if (!tenCongViec) {
-                showAlert('Vui lòng nhập tên lỗi!', 'warning');
+                showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
                 inputLoiKhac.focus();
                 return;
             }
         } else if (luaChon.value) {
             tenCongViec = luaChon.text.split('(')[0].trim();
             khoangGia = luaChon.getAttribute('data-range') || 'Không có';
+
+            // KIỂM TRA KHOẢNG GIÁ - ĐÂY LÀ PHẦN QUAN TRỌNG
+            if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
+                if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
+                    showConfirm(
+                        'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
+                        'Thông báo',
+                    );
+                    return;
+                }
+            }
         } else {
-            showAlert('Vui lòng chọn lỗi!', 'warning');
+            showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
             return;
         }
 
@@ -1067,13 +1126,14 @@ include __DIR__ . '/../footer.php';
 
         hienThiDanhSachCongViec(maThietBi);
 
+        // Reset form
         select.value = '';
         inputLoiKhac.value = '';
         inputChiPhi.value = '';
         document.getElementById('custom_job_name_' + maThietBi).style.display = 'none';
         document.getElementById('cost_hint_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
 
-        showAlert('Đã thêm công việc vào danh sách', 'success');
+        showConfirm('Đã thêm công việc vào danh sách', 'Thành công');
     }
 
     function hienThiDanhSachCongViec(maThietBi) {
@@ -1132,7 +1192,7 @@ include __DIR__ . '/../footer.php';
         if (confirm('Bạn có chắc chắn muốn xóa công việc này?')) {
             danhSachCongViec[maThietBi] = danhSachCongViec[maThietBi].filter(congViec => congViec.id !== maCongViec);
             hienThiDanhSachCongViec(maThietBi);
-            showAlert('Đã xóa công việc', 'info');
+            showConfirm('Đã xóa công việc', 'Thông báo');
         }
     }
 
@@ -1155,11 +1215,11 @@ include __DIR__ . '/../footer.php';
     }
 
     // Khởi tạo upload area
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Xử lý click vào ảnh để phóng to
         const evidenceImages = document.querySelectorAll('.evidence-image');
         evidenceImages.forEach(img => {
-            img.addEventListener('click', function() {
+            img.addEventListener('click', function () {
                 const imageSrc = this.getAttribute('data-image-src');
                 document.getElementById('modalImage').src = imageSrc;
             });
@@ -1191,23 +1251,23 @@ include __DIR__ . '/../footer.php';
         if (!uploadArea || !fileInput) return;
 
         uploadArea.addEventListener('click', () => fileInput.click());
-        
-        fileInput.addEventListener('change', function() {
+
+        fileInput.addEventListener('change', function () {
             if (this.files && this.files[0]) {
                 const file = this.files[0];
-                
+
                 if (file.size > 5 * 1024 * 1024) {
-                    showAlert('Kích thước file vượt quá 5MB. Vui lòng chọn file nhỏ hơn.', 'warning');
+                    showConfirm('Kích thước file vượt quá 5MB. Vui lòng chọn file nhỏ hơn.', 'Thông báo');
                     return;
                 }
 
                 if (!file.type.match('image.*')) {
-                    showAlert('Vui lòng chọn file ảnh hợp lệ (PNG, JPG, GIF).', 'warning');
+                    showConfirm('Vui lòng chọn file ảnh hợp lệ (PNG, JPG, GIF).', 'Thông báo');
                     return;
                 }
 
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     previewImage.src = e.target.result;
                     previewContainer.style.display = 'block';
                     uploadArea.style.display = 'none';
@@ -1217,107 +1277,119 @@ include __DIR__ . '/../footer.php';
         });
 
         if (changeBtn) {
-            changeBtn.addEventListener('click', function() {
+            changeBtn.addEventListener('click', function () {
                 uploadArea.style.display = 'block';
                 previewContainer.style.display = 'none';
                 fileInput.value = '';
             });
         }
     }
+
     // CÁC HÀM CHO CÔNG VIỆC PHÁT SINH
-function toggleCustomJobInputPhatSinh(select, maThietBi) {
-    const divLoiKhac = document.getElementById('custom_job_name_phatsinh_' + maThietBi);
-    const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
-    const hintChiPhi = document.getElementById('cost_hint_phatsinh_' + maThietBi);
-    const luaChon = select.options[select.selectedIndex];
+    function toggleCustomJobInputPhatSinh(select, maThietBi) {
+        const divLoiKhac = document.getElementById('custom_job_name_phatsinh_' + maThietBi);
+        const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
+        const hintChiPhi = document.getElementById('cost_hint_phatsinh_' + maThietBi);
+        const luaChon = select.options[select.selectedIndex];
 
-    if (luaChon.value === 'custom') {
-        divLoiKhac.style.display = 'block';
-        inputChiPhi.placeholder = 'Nhập chi phí...';
-        hintChiPhi.innerHTML = 'Nhập chi phí cho lỗi khác';
-        inputChiPhi.value = '';
-    } else if (luaChon.value) {
-        divLoiKhac.style.display = 'none';
+        if (luaChon.value === 'custom') {
+            divLoiKhac.style.display = 'block';
+            inputChiPhi.placeholder = 'Nhập chi phí...';
+            hintChiPhi.innerHTML = 'Nhập chi phí cho lỗi khác';
+            inputChiPhi.value = '';
+        } else if (luaChon.value) {
+            divLoiKhac.style.display = 'none';
 
-        const khoangGia = luaChon.getAttribute('data-range');
-        inputChiPhi.value = '';
+            const khoangGia = luaChon.getAttribute('data-range');
+            inputChiPhi.value = '';
 
-        if (khoangGia) {
-            inputChiPhi.placeholder = khoangGia;
-            hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia}`;
+            if (khoangGia) {
+                inputChiPhi.placeholder = khoangGia;
+                hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia}`;
+            } else {
+                inputChiPhi.placeholder = 'Nhập chi phí...';
+                hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
+            }
         } else {
+            divLoiKhac.style.display = 'none';
+            inputChiPhi.value = '';
             inputChiPhi.placeholder = 'Nhập chi phí...';
             hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
         }
-    } else {
-        divLoiKhac.style.display = 'none';
-        inputChiPhi.value = '';
-        inputChiPhi.placeholder = 'Nhập chi phí...';
-        hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
-    }
-}
-
-function addRepairJobPhatSinh(maThietBi) {
-    const select = document.getElementById('job_select_phatsinh_' + maThietBi);
-    const inputLoiKhac = document.getElementById('custom_job_input_phatsinh_' + maThietBi);
-    const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
-    const luaChon = select.options[select.selectedIndex];
-
-    let tenCongViec = '';
-    let chiPhiCongViec = inputChiPhi.value;
-    let khoangGia = '';
-
-    if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
-        showAlert('Vui lòng nhập chi phí hợp lệ!', 'warning');
-        inputChiPhi.focus();
-        return;
     }
 
-    chiPhiCongViec = parseFloat(chiPhiCongViec);
+    function addRepairJobPhatSinh(maThietBi) {
+        const select = document.getElementById('job_select_phatsinh_' + maThietBi);
+        const inputLoiKhac = document.getElementById('custom_job_input_phatsinh_' + maThietBi);
+        const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
+        const luaChon = select.options[select.selectedIndex];
 
-    if (luaChon.value === 'custom') {
-        tenCongViec = inputLoiKhac.value.trim();
-        khoangGia = 'Tự nhập';
-        if (!tenCongViec) {
-            showAlert('Vui lòng nhập tên lỗi!', 'warning');
-            inputLoiKhac.focus();
+        let tenCongViec = '';
+        let chiPhiCongViec = inputChiPhi.value;
+        let khoangGia = '';
+
+        if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
+            showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
+            inputChiPhi.focus();
             return;
         }
-    } else if (luaChon.value) {
-        tenCongViec = luaChon.text.split('(')[0].trim();
-        khoangGia = luaChon.getAttribute('data-range') || 'Không có';
-    } else {
-        showAlert('Vui lòng chọn lỗi!', 'warning');
-        return;
+
+        chiPhiCongViec = parseFloat(chiPhiCongViec);
+
+        if (luaChon.value === 'custom') {
+            tenCongViec = inputLoiKhac.value.trim();
+            khoangGia = 'Tự nhập';
+            if (!tenCongViec) {
+                showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
+                inputLoiKhac.focus();
+                return;
+            }
+        } else if (luaChon.value) {
+            tenCongViec = luaChon.text.split('(')[0].trim();
+            khoangGia = luaChon.getAttribute('data-range') || 'Không có';
+
+            // KIỂM TRA KHOẢNG GIÁ CHO CÔNG VIỆC PHÁT SINH
+            if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
+                if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
+                    showConfirm(
+                        'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
+                        'Thông báo',
+                    );
+                    return;
+                }
+            }
+        } else {
+            showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
+            return;
+        }
+
+        const maCongViec = 'congviec_phatsinh_' + Date.now();
+        danhSachCongViecPhatSinh[maThietBi].push({
+            id: maCongViec,
+            name: tenCongViec,
+            cost: chiPhiCongViec,
+            priceRange: khoangGia
+        });
+
+        hienThiDanhSachCongViecPhatSinh(maThietBi);
+
+        // Reset form
+        select.value = '';
+        inputLoiKhac.value = '';
+        inputChiPhi.value = '';
+        document.getElementById('custom_job_name_phatsinh_' + maThietBi).style.display = 'none';
+        document.getElementById('cost_hint_phatsinh_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
+
+        showConfirm('Đã thêm công việc vào danh sách phát sinh', 'Thành công');
     }
 
-    const maCongViec = 'congviec_phatsinh_' + Date.now();
-    danhSachCongViecPhatSinh[maThietBi].push({
-        id: maCongViec,
-        name: tenCongViec,
-        cost: chiPhiCongViec,
-        priceRange: khoangGia
-    });
+    function hienThiDanhSachCongViecPhatSinh(maThietBi) {
+        const container = document.getElementById('repair_jobs_phatsinh_table_' + maThietBi);
+        const footer = document.getElementById('repair_jobs_phatsinh_footer_' + maThietBi);
+        const cacCongViec = danhSachCongViecPhatSinh[maThietBi];
 
-    hienThiDanhSachCongViecPhatSinh(maThietBi);
-
-    // Reset form
-    select.value = '';
-    inputLoiKhac.value = '';
-    inputChiPhi.value = '';
-    document.getElementById('custom_job_name_phatsinh_' + maThietBi).style.display = 'none';
-    document.getElementById('cost_hint_phatsinh_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
-
-    showAlert('Đã thêm công việc vào danh sách phát sinh', 'success');
-}
-
-function hienThiDanhSachCongViecPhatSinh(maThietBi) {
-    const container = document.getElementById('repair_jobs_phatsinh_table_' + maThietBi);
-    const footer = document.getElementById('repair_jobs_phatsinh_footer_' + maThietBi);
-    const cacCongViec = danhSachCongViecPhatSinh[maThietBi];
-
-    if (cacCongViec.length === 0) {
-        container.innerHTML = `
+        if (cacCongViec.length === 0) {
+            container.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-3 text-muted">
                     <i class="fas fa-info-circle me-2"></i>
@@ -1325,16 +1397,16 @@ function hienThiDanhSachCongViecPhatSinh(maThietBi) {
                 </td>
             </tr>
         `;
-        if (footer) footer.style.display = 'none';
-        return;
-    }
+            if (footer) footer.style.display = 'none';
+            return;
+        }
 
-    let html = '';
-    let tongChiPhi = 0;
+        let html = '';
+        let tongChiPhi = 0;
 
-    cacCongViec.forEach((congViec, index) => {
-        tongChiPhi += congViec.cost;
-        html += `
+        cacCongViec.forEach((congViec, index) => {
+            tongChiPhi += congViec.cost;
+            html += `
             <tr>
                 <td class="text-center">${index + 1}</td>
                 <td>${congViec.name}</td>
@@ -1349,71 +1421,71 @@ function hienThiDanhSachCongViecPhatSinh(maThietBi) {
                 </td>
             </tr>
         `;
-    });
-
-    container.innerHTML = html;
-    if (footer) {
-        footer.style.display = '';
-        document.getElementById('total_phatsinh_table_' + maThietBi).textContent = dinhDangSo(tongChiPhi);
-    }
-}
-
-function xoaCongViecPhatSinh(maThietBi, maCongViec) {
-    if (confirm('Bạn có chắc chắn muốn xóa công việc phát sinh này?')) {
-        danhSachCongViecPhatSinh[maThietBi] = danhSachCongViecPhatSinh[maThietBi].filter(congViec => congViec.id !== maCongViec);
-        hienThiDanhSachCongViecPhatSinh(maThietBi);
-        showAlert('Đã xóa công việc phát sinh', 'info');
-    }
-}
-
-// Hàm lưu công việc phát sinh bằng AJAX
-async function saveAdditionalJobs(maCTDon) {
-    const danhSachCongViecJSON = JSON.stringify(danhSachCongViecPhatSinh[maCTDon] || []);
-
-    if (danhSachCongViecPhatSinh[maCTDon].length === 0) {
-        showAlert('Vui lòng thêm ít nhất một công việc phát sinh!', 'warning');
-        return;
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn lưu ${danhSachCongViecPhatSinh[maCTDon].length} công việc phát sinh?`)) {
-        return;
-    }
-
-    const button = document.querySelector(`[onclick="saveAdditionalJobs('${maCTDon}')"]`);
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...';
-    button.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append('action', 'save_additional_jobs');
-        formData.append('maDon', '<?php echo $maDon; ?>');
-        formData.append('maCTDon', maCTDon);
-        formData.append('danh_sach_cong_viec_phat_sinh_json', danhSachCongViecJSON);
-
-        const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
-            method: 'POST',
-            body: formData
         });
 
-        const result = await response.json();
+        container.innerHTML = html;
+        if (footer) {
+            footer.style.display = '';
+            document.getElementById('total_phatsinh_table_' + maThietBi).textContent = dinhDangSo(tongChiPhi);
+        }
+    }
 
-        if (result.success) {
-            showAlert(result.message, 'success');
-            // Reload sau 1.5 giây
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showAlert(result.message, 'danger');
+    function xoaCongViecPhatSinh(maThietBi, maCongViec) {
+        if (confirm('Bạn có chắc chắn muốn xóa công việc phát sinh này?')) {
+            danhSachCongViecPhatSinh[maThietBi] = danhSachCongViecPhatSinh[maThietBi].filter(congViec => congViec.id !== maCongViec);
+            hienThiDanhSachCongViecPhatSinh(maThietBi);
+            showConfirm('Đã xóa công việc phát sinh', 'Thông báo');
+        }
+    }
+
+    // Hàm lưu công việc phát sinh bằng AJAX
+    async function saveAdditionalJobs(maCTDon) {
+        const danhSachCongViecJSON = JSON.stringify(danhSachCongViecPhatSinh[maCTDon] || []);
+
+        if (danhSachCongViecPhatSinh[maCTDon].length === 0) {
+            showConfirm('Vui lòng thêm ít nhất một công việc phát sinh!', 'Thông báo');
+            return;
+        }
+
+        if (!confirm(`Bạn có chắc chắn muốn lưu ${danhSachCongViecPhatSinh[maCTDon].length} công việc phát sinh?`)) {
+            return;
+        }
+
+        const button = document.querySelector(`[onclick="saveAdditionalJobs('${maCTDon}')"]`);
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...';
+        button.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'save_additional_jobs');
+            formData.append('maDon', '<?php echo $maDon; ?>');
+            formData.append('maCTDon', maCTDon);
+            formData.append('danh_sach_cong_viec_phat_sinh_json', danhSachCongViecJSON);
+
+            const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showConfirm(result.message, 'Thành công');
+                // Reload sau 1.5 giây
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showConfirm(result.message, 'Lỗi');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+
+        } catch (error) {
+            handleError(error);
             button.innerHTML = originalText;
             button.disabled = false;
         }
-
-    } catch (error) {
-        handleError(error);
-        button.innerHTML = originalText;
-        button.disabled = false;
     }
-}
 </script>

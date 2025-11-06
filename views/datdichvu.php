@@ -25,15 +25,15 @@ $bookedSchedules = $bookingController->getBookedSchedules();
     <div class="container">
         <!-- Header -->
         <div class="card border-0 s mb-4">
-    <div class="card-body p-4 p-md-5 text-center">
-        <div class="">
-            <h1 class="display-5 fw-bold mb-3 text-primary">
-                <i class="fas fa-tools me-3"></i>ĐẶT DỊCH VỤ SỬA CHỮA THIẾT BỊ
-            </h1>
-            <p class="lead text-muted mb-0">Dịch vụ chuyên nghiệp - Hỗ trợ tận tâm</p>
+            <div class="card-body p-4 p-md-5 text-center">
+                <div class="">
+                    <h1 class="display-5 fw-bold mb-3 text-primary">
+                        <i class="fas fa-tools me-3"></i>ĐẶT DỊCH VỤ SỬA CHỮA THIẾT BỊ
+                    </h1>
+                    <p class="lead text-muted mb-0">Dịch vụ chuyên nghiệp - Hỗ trợ tận tâm</p>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
         <div class="banner-image-container text-center">
             <img src="<?php echo asset('images/bannerddv.jpg'); ?>" alt="TechCare Banner"
                 class="banner-image img-fluid">
@@ -78,13 +78,13 @@ $bookedSchedules = $bookingController->getBookedSchedules();
                                     <div class="address-select-container mb-3">
                                         <div class="row g-2">
                                             <div class="col-md-4">
-                                                <select class="form-select input-gray" id="province" name="province">
+                                                <select class="form-select input-gray" id="province" name="province"required >
                                                     <option value="">Thành phố</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-4">
                                                 <select class="form-select input-gray" id="district" name="district"
-                                                    disabled>
+                                                    disabled required>
                                                     <option value="">Quận/Huyện</option>
                                                 </select>
                                             </div>
@@ -97,7 +97,7 @@ $bookedSchedules = $bookingController->getBookedSchedules();
                                         <div class="row g-2 mt-2">
                                             <div class="col-12">
                                                 <input type="text" class="form-control input-gray" id="street_address"
-                                                    name="street_address" placeholder="Số nhà, tên đường">
+                                                    name="street_address" placeholder="Số nhà, tên đường" required>
                                             </div>
                                         </div>
                                     </div>
@@ -174,7 +174,8 @@ $bookedSchedules = $bookingController->getBookedSchedules();
                                 </h5>
 
                                 <!-- Radio Đặt lịch hôm nay -->
-                                <div class="form-check mb-3 p-3 border border-gray rounded bg-light">
+                                <!-- 👉 -->
+                                <div class="form-check mb-3 p-3  rounded bg-light">
                                     <input class="form-check-input" type="radio" id="schedule_today"
                                         name="schedule_type" value="today" checked>
                                     <label class="form-check-label fw-semibold text-success" for="schedule_today">
@@ -187,8 +188,9 @@ $bookedSchedules = $bookingController->getBookedSchedules();
                                 </div>
 
                                 <!-- Radio Đặt lịch hẹn -->
-                                <div class="form-check p-3 border border-gray rounded bg-light">
-                                    <input class="form-check-input" type="radio" id="schedule_appointment"
+                                <!-- 👉 -->
+                                <div class="form-check p-3  rounded bg-light">
+                                <input class="form-check-input" type="radio" id="schedule_appointment"
                                         name="schedule_type" value="appointment">
                                     <label class="form-check-label fw-semibold text-primary" for="schedule_appointment">
                                         <i class="fas fa-calendar-plus me-2"></i>Đặt lịch hẹn
@@ -281,6 +283,10 @@ $bookedSchedules = $bookingController->getBookedSchedules();
                                         <i class="fas fa-shield-alt me-1"></i>Được bảo hành dịch vụ 30 ngày
                                     </small>
                                 </div>
+                                <div class="banner-image-container text-center">
+            <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner"
+                style="width:50%;">
+        </div>
                             </div>
                         </div>
                     </div>
