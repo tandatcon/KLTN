@@ -184,7 +184,7 @@ $currentDate = date('Y-m-d');
                                 <!-- Chọn khung giờ -->
                                 <div class="mb-4">
                                     <h6 class="text-primary mb-3">
-                                        <i class="fas fa-clock me-2"></i> <Chọn khung giờ(Lưu ý: Kỹ thuật viên sẽ gọi điện cho bạn để xác nhận giờ hẹn)
+                                        <i class="fas fa-clock me-2"></i>Chọn khung giờ
                                     </h6>
                                     <div class="time-selection">
                                         <div class="row g-2">
@@ -285,10 +285,6 @@ $currentDate = date('Y-m-d');
                                         <i class="fas fa-shield-alt me-1"></i>Được bảo hành dịch vụ 30 ngày
                                     </small>
                                 </div>
-                                <!-- Banner waiting image -->
-        <div class="banner-image-container text-center mt-4">
-            <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner" style="width:50%;">
-        </div>
                             </div>
                         </div>
                     </div>
@@ -296,7 +292,10 @@ $currentDate = date('Y-m-d');
             </div>
         </form>
 
-        
+        <!-- Banner waiting image -->
+        <div class="banner-image-container text-center mt-4">
+            <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner" style="width:50%;">
+        </div>
 
         <!-- Nút chỉ đường -->
         <div class="text-center mt-4">
@@ -535,7 +534,7 @@ class ScheduleManager {
 class AddressAPI {
     constructor() {
         this.baseURL = 'https://provinces.open-api.vn/api/';
-        this.allowedDistricts = ['764', '761','765','766','768','784']; // Bình Thạnh và Gò Vấp
+        this.allowedDistricts = ['760', '761']; // Bình Thạnh và Gò Vấp
         this.init();
     }
 
@@ -688,7 +687,7 @@ class AddressAPI {
 class BookingForm {
     constructor() {
         this.deviceCount = 1;
-        this.maxDevices = 3;
+        this.maxDevices = 8;
         this.init();
     }
 

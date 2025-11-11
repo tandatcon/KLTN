@@ -339,6 +339,18 @@ public function huyDonHang($orderId) {
         return false;
     }
 }
+public function getTechnicianInfo($employeeId) {
+    try {
+        $sql = "SELECT * FROM nguoidung WHERE maND = ? and maVaiTro='3'";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$employeeId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+        
+    } catch (Exception $e) {
+        error_log("getEmployeeById Error: " . $e->getMessage());
+        return null;
+    }
+}
 
 
 

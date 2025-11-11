@@ -165,7 +165,8 @@ foreach ($chiTietDonDichVu as $ctdd) {
                 <div class="card-body py-3">
                     <div class="row align-items-center">
                         <div class="col-md-6 text-center text-md-start">
-                            <strong class="fs-5">Tổng báo giá: <?php echo number_format($tongBaoGia); ?> VND</strong>
+                            <strong class="fs-5">Tổng chi phí sửa chữa: <?php echo number_format($tongBaoGia); ?>
+                                VND</strong>
                         </div>
                         <div class="col-md-6 text-center text-md-end">
                             <?php if ($donHang['trangThai'] == 4): ?>
@@ -202,6 +203,7 @@ foreach ($chiTietDonDichVu as $ctdd) {
                     $minhChungThietBi = $serviceProcessModel->getEvidenceImages($maDon, $ctdd['maCTDon']);
                     $daCoMinhChungDen = !empty($minhChungThietBi['minhchung_den']);
                     $daCoMinhChungThietBi = !empty($minhChungThietBi['minhchung_thietbi']);
+                    $daUploadHoanThanh = !empty($minhChungThietBi["minhchunghoanthanh"]);
 
                     $trangThaiThietBi = $ctdd['trangThai'] ?? 1;
                     $gioBatDau = $ctdd['gioBatDau'] ?? null;
@@ -529,16 +531,12 @@ foreach ($chiTietDonDichVu as $ctdd) {
                                             </div>
                                         </div>
                                     <?php endif; ?>
-
-
-
                                     <!-- THÊM CÔNG VIỆC PHÁT SINH (Nếu đang sửa chữa) -->
                                     <?php if ($quyetDinhSC == 1 && $trangThaiThietBi == 2): ?>
                                         <div id="additional-jobs-<?php echo $ctdd['maCTDon']; ?>">
                                             <?php include 'partials/additional_jobs_form.php'; ?>
                                         </div>
                                     <?php endif; ?>
-
                                     <!-- Nút bắt đầu vaf kết thúc -->
                                     <?php if ($quyetDinhSC == 1): ?>
                                         <div id="service-buttons-<?php echo $ctdd['maCTDon']; ?>" align="center">
@@ -575,6 +573,9 @@ foreach ($chiTietDonDichVu as $ctdd) {
             </div>
         </div>
     </div>
+    <div id="end-page">
+
+    </div>
 </section>
 
 <!-- MODAL PHÓNG TO ẢNH -->
@@ -594,7 +595,56 @@ foreach ($chiTietDonDichVu as $ctdd) {
         </div>
     </div>
 </div>
+<!-- Nút cuộn lên đầu trang và cuối trang -->
+<button class="btn btn-primary position-fixed rounded-circle p-2 scroll-btn" id="scrollToTop"
+    style="bottom: 80px; right: 20px; z-index: 1050; display: none; width: 50px; height: 50px;">
+    <i class="fas fa-arrow-up"></i>
+</button>
 
+<button class="btn btn-success position-fixed rounded-circle p-2 scroll-btn" id="scrollToBottom"
+    style="bottom: 20px; right: 20px; z-index: 1050; width: 50px; height: 50px;">
+    <i class="fas fa-arrow-down"></i>
+</button>
+
+<script>
+    // Cuộn lên đầu trang
+    document.getElementById('scrollToTop').addEventListener('click', function () {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    // Cuộn xuống cuối trang
+    document.getElementById('scrollToBottom').addEventListener('click', function () {
+        window.scrollTo({
+            top: document.body.scrollHeight - window.innerHeight - 200,
+            behavior: 'smooth'
+        });
+    });
+
+    // Hiển thị nút cuộn lên khi cuộn xuống
+    window.addEventListener('scroll', function () {
+        const scrollToTopBtn = document.getElementById('scrollToTop');
+        if (window.pageYOffset > 300) {
+            scrollToTopBtn.style.display = 'block';
+        } else {
+            scrollToTopBtn.style.display = 'none';
+        }
+    });
+</script>
+
+<style>
+    .scroll-btn {
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .scroll-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+</style>
 <?php
 ob_end_flush();
 include __DIR__ . '/../footer.php';
@@ -847,98 +897,98 @@ include __DIR__ . '/../footer.php';
     }
 
     // AJAX Service Action Handler
-async function handleServiceAction(action, maCTDon, deviceName) {
-    let actionText = '';
-    let confirmMessage = '';
+    async function handleServiceAction(action, maCTDon, deviceName) {
+        let actionText = '';
+        let confirmMessage = '';
 
-    switch (action) {
-        case 'start_service':
-            actionText = 'bắt đầu sửa chữa';
-            confirmMessage = `Bạn có chắc chắn muốn bắt đầu sửa chữa thiết bị "${deviceName}"?`;
-            break;
-        case 'complete_service':
-            actionText = 'kết thúc sửa chữa';
-            confirmMessage = `Bạn có chắc chắn muốn kết thúc sửa chữa thiết bị "${deviceName}"?`;
-            break;
-        default:
-            return;
+        switch (action) {
+            case 'start_service':
+                actionText = 'bắt đầu sửa chữa';
+                confirmMessage = `Bạn có chắc chắn muốn bắt đầu sửa chữa thiết bị "${deviceName}"?`;
+                break;
+            case 'complete_service':
+                actionText = 'kết thúc sửa chữa';
+                confirmMessage = `Bạn có chắc chắn muốn kết thúc sửa chữa thiết bị "${deviceName}"?`;
+                break;
+            default:
+                return;
+        }
+
+        // Sử dụng showConfirm với 2 callback
+        showConfirm(
+            confirmMessage,
+            'Xác nhận',
+            function () {
+                // Xác nhận - thực hiện AJAX call
+                performServiceAction(action, maCTDon, deviceName);
+            },
+            function () {
+                // Hủy bỏ - không làm gì
+                console.log('Người dùng đã hủy thao tác ' + actionText);
+            }
+        );
     }
 
-    // Sử dụng showConfirm với 2 callback
-    showConfirm(
-        confirmMessage,
-        'Xác nhận',
-        function () {
-            // Xác nhận - thực hiện AJAX call
-            performServiceAction(action, maCTDon, deviceName);
-        },
-        function () {
-            // Hủy bỏ - không làm gì
-            console.log('Người dùng đã hủy thao tác ' + actionText);
-        }
-    );
-}
+    // Hàm thực hiện AJAX call
+    async function performServiceAction(action, maCTDon, deviceName) {
+        const button = document.querySelector(`[onclick="handleServiceAction('${action}', '${maCTDon}', '${deviceName}')"]`);
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+        button.disabled = true;
 
-// Hàm thực hiện AJAX call
-async function performServiceAction(action, maCTDon, deviceName) {
-    const button = document.querySelector(`[onclick="handleServiceAction('${action}', '${maCTDon}', '${deviceName}')"]`);
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
-    button.disabled = true;
+        try {
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('maDon', '<?php echo $maDon; ?>');
+            formData.append('maCTDon', maCTDon);
 
-    try {
-        const formData = new FormData();
-        formData.append('action', action);
-        formData.append('maDon', '<?php echo $maDon; ?>');
-        formData.append('maCTDon', maCTDon);
+            const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
+                method: 'POST',
+                body: formData
+            });
 
-        const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
-            method: 'POST',
-            body: formData
-        });
+            const result = await response.json();
 
-        const result = await response.json();
+            if (result.success) {
+                showConfirm(
+                    result.message,
+                    'Thành công',
+                    function () {
+                        updateUIAfterServiceAction(maCTDon, action);
+                    }
+                );
+            } else {
+                showConfirm(result.message, 'Lỗi');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
 
-        if (result.success) {
-            showConfirm(
-                result.message,
-                'Thành công',
-                function() {
-                    updateUIAfterServiceAction(maCTDon, action);
-                }
-            );
-        } else {
-            showConfirm(result.message, 'Lỗi');
+        } catch (error) {
+            handleError(error);
             button.innerHTML = originalText;
             button.disabled = false;
         }
-
-    } catch (error) {
-        handleError(error);
-        button.innerHTML = originalText;
-        button.disabled = false;
     }
-}
 
-// Cập nhật giao diện sau khi thực hiện hành động dịch vụ
-function updateUIAfterServiceAction(maCTDon, action) {
-    const serviceButtons = document.getElementById(`service-buttons-${maCTDon}`);
+    // Cập nhật giao diện sau khi thực hiện hành động dịch vụ
+    function updateUIAfterServiceAction(maCTDon, action) {
+        const serviceButtons = document.getElementById(`service-buttons-${maCTDon}`);
 
-    if (serviceButtons) {
-        serviceButtons.style.opacity = '0.5';
-        serviceButtons.innerHTML = `
+        if (serviceButtons) {
+            serviceButtons.style.opacity = '0.5';
+            serviceButtons.innerHTML = `
             <div class="alert alert-info">
                 <i class="fas fa-spinner fa-spin me-2"></i>
                 Đang cập nhật trạng thái...
             </div>
         `;
 
-        // Reload phần thiết bị sau 2 giây
-        setTimeout(() => {
-            location.reload();
-        }, 2000);
+            // Reload phần thiết bị sau 2 giây
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
     }
-}
 
     // Cập nhật giao diện sau khi thực hiện hành động dịch vụ
     function updateUIAfterServiceAction(maCTDon, action) {
@@ -961,8 +1011,26 @@ function updateUIAfterServiceAction(maCTDon, action) {
     }
 
     // AJAX Upload Evidence
+    // AJAX Upload Evidence - ĐÃ SỬA ĐỂ HỖ TRỢ COMPLETION
     async function uploadEvidence(maCTDon, evidenceType) {
-        const fileInput = document.getElementById(`fileInput${evidenceType === 'arrival' ? 'Arrival' : 'Device'}_${maCTDon}`);
+        // Xác định fileInput dựa trên evidenceType
+        let fileInputId = '';
+        switch (evidenceType) {
+            case 'arrival':
+                fileInputId = `fileInputArrival_${maCTDon}`;
+                break;
+            case 'device':
+                fileInputId = `fileInputDevice_${maCTDon}`;
+                break;
+            case 'completion':
+                fileInputId = `fileInputCompletion_${maCTDon}`;
+                break;
+            default:
+                showConfirm('Loại minh chứng không hợp lệ!', 'Lỗi');
+                return;
+        }
+
+        const fileInput = document.getElementById(fileInputId);
         const file = fileInput.files[0];
 
         if (!file) {
@@ -1232,6 +1300,9 @@ function updateUIAfterServiceAction(maCTDon, action) {
             <?php endif; ?>
             <?php if (!$daCoMinhChungThietBi): ?>
                 initUploadArea('Device', '<?php echo $ctdd['maCTDon']; ?>');
+            <?php endif; ?>
+            <?php if (!$daUploadHoanThanh): ?>
+                initUploadArea('Completion', '<?php echo $ctdd['maCTDon']; ?>');
             <?php endif; ?>
         <?php endforeach; ?>
 

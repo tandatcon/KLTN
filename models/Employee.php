@@ -73,6 +73,7 @@ class Employee
     
 
     // Lay KTV trong viec
+    //Bo
     public function findAvailableKTV($ngaydat, $giodat)
 {
     // Lấy tháng và năm từ ngày đặt

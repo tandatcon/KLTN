@@ -92,8 +92,7 @@ if (!isset($ctdd) || !isset($chiTietGia))
                 </tfoot>
             </table>
             <div align="center" style="margin:10px;">
-                <button type="button" class="btn btn-success btn-lg"
-                    onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">
+                <button type="button" class="btn btn-success btn-lg"></button>
                     <i class="fas fa-save me-2"></i>Lưu các công việc phát sinh
                 </button>
             </div>
@@ -101,7 +100,82 @@ if (!isset($ctdd) || !isset($chiTietGia))
     </div>
 </div>
 
+<!-- MINH CHỨNG HOÀN THÀNH - BẮT BUỘC TRƯỚC KHI KẾT THÚC -->
+<div class="card border-primary mb-3">
+    <div class="card-header bg-primary text-white py-2">
+        <h6 class="mb-0">
+            <i class="fas fa-camera me-2"></i>Minh Chứng Hoàn Thành (Bắt buộc)
+            <?php if ($daUploadHoanThanh): ?>
+                <span class="badge bg-success ms-2">Đã upload</span>
+            <?php else: ?>
+                <span class="badge bg-danger ms-2">Chưa upload</span>
+            <?php endif; ?>
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <?php if ($daUploadHoanThanh): ?>
+                    <!-- HIỂN THỊ ẢNH ĐÃ UPLOAD -->
+                    <div class="text-center mb-3">
+                        <img src="<?php echo url('assets/images/' . $minhChungThietBi['minhchunghoanthanh']); ?>"
+                            class="img-fluid rounded cursor-pointer evidence-image"
+                            style="max-height: 200px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#imageModal"
+                            data-image-src="<?php echo url('assets/images/' . $minhChungThietBi['minhchunghoanthanh']); ?>"
+                            onerror="this.src='<?php echo url('assets/images/no-image.jpg'); ?>'"
+                            alt="Minh chứng hoàn thành">
+                        <div class="mt-2">
+                            <small class="text-muted">Click để phóng to</small>
+                        </div>
+                    </div>
+                    
+                <?php else: ?>
+                    <!-- FORM UPLOAD MỚI - SỬ DỤNG CÙNG HÀM UPLOAD HIỆN TẠI -->
+                    <form method="POST" enctype="multipart/form-data" class="ajax-upload-form">
+                        <input type="hidden" name="ctdon_id" value="<?php echo $ctdd['maCTDon']; ?>">
+                        <input type="hidden" name="evidence_type" value="completion">
 
+                        <div class="upload-area-simple" id="uploadAreaCompletion_<?php echo $ctdd['maCTDon']; ?>">
+                            <div class="upload-icon">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            <div class="upload-text-simple">Upload ảnh hoàn thành</div>
+                            <div class="upload-subtext-simple">
+                                Chụp ảnh thiết bị sau khi sửa xong<br>
+                                PNG, JPG, GIF up to 5MB
+                            </div>
+                        </div>
+
+                        <input type="file" id="fileInputCompletion_<?php echo $ctdd['maCTDon']; ?>" name="evidence_image"
+                            accept="image/*" style="display: none;">
+
+                        <div class="preview-container-simple"
+                            id="previewContainerCompletion_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
+                            <div class="preview-title-simple">Ảnh minh chứng hoàn thành:</div>
+                            <img id="previewImageCompletion_<?php echo $ctdd['maCTDon']; ?>" class="preview-image-simple"
+                                src="" alt="Preview">
+                            <div class="preview-actions mt-3">
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    id="changeBtnCompletion_<?php echo $ctdd['maCTDon']; ?>">
+                                    <i class="fas fa-redo me-1"></i>Đổi ảnh
+                                </button>
+                                <button type="button" class="btn btn-success btn-sm"
+                                    onclick="uploadEvidence('<?php echo $ctdd['maCTDon']; ?>', 'completion')">
+                                    <i class="fas fa-upload me-1"></i>Upload minh chứng
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Lưu ý:</strong> Phải upload minh chứng hoàn thành trước khi kết thúc sửa chữa
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     // Khởi tạo mảng công việc phát sinh cho thiết bị này
@@ -125,5 +199,10 @@ if (!isset($ctdd) || !isset($chiTietGia))
 
         // Hiển thị danh sách ban đầu
         hienThiDanhSachCongViecPhatSinh('<?php echo $ctdd['maCTDon']; ?>');
+
+        // Khởi tạo upload area cho minh chứng hoàn thành
+        <?php if (!$daUploadHoanThanh): ?>
+            initUploadArea('Completion', '<?php echo $ctdd['maCTDon']; ?>');
+        <?php endif; ?>
     });
 </script>

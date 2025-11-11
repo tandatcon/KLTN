@@ -139,6 +139,8 @@ class ServiceProcess
                 $fieldToUpdate = 'minhchung_den';
             } elseif ($evidenceType == 'device') {
                 $fieldToUpdate = 'minhchung_thietbi';
+            }elseif ($evidenceType == 'completion') {
+                $fieldToUpdate = 'minhchunghoanthanh';
             } else {
                 error_log("Invalid evidence type: $evidenceType");
                 return false;
@@ -175,7 +177,9 @@ class ServiceProcess
         try {
             $sql = "SELECT 
                     minhchung_den,
-                    minhchung_thietbi
+                    minhchung_thietbi,
+                    minhchunghoanthanh
+                    
                     FROM chitietdondichvu 
                     WHERE maDon = ? AND maCTDon = ?";
 

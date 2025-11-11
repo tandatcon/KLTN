@@ -36,7 +36,12 @@ $deviceNames = $data['deviceNames'];
 
 // Lấy thông tin bổ sung
 $repairDetails = $orderController->getDeviceDetails($orderId);
-$technicianInfo = $orderController->getOrderTechnician($orderId);
+
+// 👇 LẤY THÔNG TIN KTV TỪ ĐƠN HÀNG
+$technicianInfo = null;
+if (!empty($order['maKTV'])) {
+    $technicianInfo = $orderController->getTechnicianInfo($order['maKTV']);
+}
 
 // Lấy danh sách công việc sửa chữa cho từng thiết bị
 $deviceRepairJobs = [];
@@ -177,9 +182,9 @@ switch ((int) $order['trangThai']) {
                                         <strong class="text-dark">
                                             <?php
                                             $time_slots = [
-                                                'sang' => 'Sáng (8:00 - 11:00)',
-                                                'chieu' => 'Chiều (13:00 - 17:00)',
-                                                'toi' => 'Tối (18:00 - 21:00)'
+                                                '1' => 'Sáng (7:30 - 12:00)',
+                                                '2' => 'Chiều (13:00 - 18:00)',
+                                                '0' => 'Khẩn cấp - Trong ngày'
                                             ];
                                             echo !empty($order['gioDat']) ? ($time_slots[$order['gioDat']] ?? $order['gioDat']) : '<span class="fst-italic text-muted">Chưa có thông tin</span>';
                                             ?>
@@ -328,7 +333,7 @@ switch ((int) $order['trangThai']) {
                                         <div class="accordion-body">
                                             <div class="row g-4">
                                                 <!-- Thông tin thiết bị -->
-                                                <div class="col-md-6">
+                                                <div class="col-12">
                                                     <div class="card h-100 border">
                                                         <div class="card-header bg-light">
                                                             <h6 class="mb-0">
@@ -336,52 +341,24 @@ switch ((int) $order['trangThai']) {
                                                             </h6>
                                                         </div>
                                                         <div class="card-body">
-                                                            <div class="mb-3">
-                                                                <small class="text-muted d-block">Loại thiết bị</small>
-                                                                <strong><?php echo htmlspecialchars($deviceName); ?></strong>
-                                                            </div>
-                                                            <?php if (!empty($deviceSafe['thong_tin_thiet_bi'])): ?>
-                                                                <div class="mb-3">
-                                                                    <small class="text-muted d-block">Mô tả</small>
-                                                                    <span><?php echo htmlspecialchars($deviceSafe['thong_tin_thiet_bi']); ?></span>
+                                                            <div class="row">
+                                                                <div class="col-md-6 mb-3">
+                                                                    <small class="text-muted d-block">Loại thiết bị</small>
+                                                                    <strong><?php echo htmlspecialchars($deviceName); ?></strong>
                                                                 </div>
-                                                            <?php endif; ?>
-                                                            <?php if (!empty($deviceSafe['mota_tinhtrang'])): ?>
-                                                                <div>
-                                                                    <small class="text-muted d-block">Mô tả tình trạng</small>
-                                                                    <span><?php echo htmlspecialchars($deviceSafe['mota_tinhtrang']); ?></span>
-                                                                </div>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Kỹ thuật viên -->
-                                                <div class="col-md-6">
-                                                    <div class="card h-100 border">
-                                                        <div class="card-header bg-light">
-                                                            <h6 class="mb-0">
-                                                                <i class="fas fa-user-cog me-2 text-info"></i>Kỹ Thuật Viên
-                                                            </h6>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <?php if (!empty($technicianInfo['hoTen'])): ?>
-                                                                <div class="mb-3">
-                                                                    <small class="text-muted d-block">Họ tên</small>
-                                                                    <strong><?php echo htmlspecialchars($technicianInfo['hoTen']); ?></strong>
-                                                                </div>
-                                                                <?php if (!empty($technicianInfo['sdt'])): ?>
-                                                                    <div>
-                                                                        <small class="text-muted d-block">Điện thoại</small>
-                                                                        <span><?php echo htmlspecialchars($technicianInfo['sdt']); ?></span>
+                                                                <?php if (!empty($deviceSafe['thong_tin_thiet_bi'])): ?>
+                                                                    <div class="col-md-6 mb-3">
+                                                                        <small class="text-muted d-block">Mô tả</small>
+                                                                        <span><?php echo htmlspecialchars($deviceSafe['thong_tin_thiet_bi']); ?></span>
                                                                     </div>
                                                                 <?php endif; ?>
-                                                            <?php else: ?>
-                                                                <div class="text-center text-muted py-3">
-                                                                    <i class="fas fa-user-clock fa-2x mb-2"></i>
-                                                                    <p class="mb-0">Chưa có kỹ thuật viên tiếp nhận</p>
-                                                                </div>
-                                                            <?php endif; ?>
+                                                                <?php if (!empty($deviceSafe['mota_tinhtrang'])): ?>
+                                                                    <div class="col-12">
+                                                                        <small class="text-muted d-block">Mô tả tình trạng</small>
+                                                                        <span><?php echo htmlspecialchars($deviceSafe['mota_tinhtrang']); ?></span>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -548,6 +525,40 @@ switch ((int) $order['trangThai']) {
                                 <?php endif; ?>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 👇 THÔNG TIN KỸ THUẬT VIÊN -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h3 class="h4 mb-0">
+                            <i class="fas fa-user-cog me-2"></i>Kỹ Thuật Viên Phụ Trách
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <?php if (!empty($technicianInfo)): ?>
+                            <div class="text-center mb-3">
+                                <i class="fas fa-user-cog fa-3x text-info mb-3"></i>
+                                <h5 class="text-dark mb-2"><?php echo htmlspecialchars($technicianInfo['hoTen']); ?></h5>
+                                <?php if (!empty($technicianInfo['sdt'])): ?>
+                                    <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                                        <i class="fas fa-phone text-success"></i>
+                                        <span class="text-dark"><?php echo htmlspecialchars($technicianInfo['sdt']); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($technicianInfo['email'])): ?>
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        <i class="fas fa-envelope text-primary"></i>
+                                        <span class="text-dark"><?php echo htmlspecialchars($technicianInfo['email']); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-user-clock fa-2x mb-2"></i>
+                                <p class="mb-0">Chưa có kỹ thuật viên tiếp nhận</p>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

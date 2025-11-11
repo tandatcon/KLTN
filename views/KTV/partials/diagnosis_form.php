@@ -177,6 +177,7 @@ if (!isset($ctdd) || !isset($chiTietGia))
             <i class="fas fa-save me-2"></i>Lưu Chẩn Đoán & Báo Giá
         </button>
     </div>
+
 </form>
 
 <script>
