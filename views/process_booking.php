@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../function/dichvu.php';
+require_once __DIR__ . '/../function/khachhang.php';
 
 session_start();
 
@@ -13,11 +14,17 @@ if (!isset($_SESSION['user_id'])) {
 
 $maKH = $_SESSION['user_id'];
 
+// Khởi tạo đối tượng DichVuService
+$dichVuService = new DichVuService($db);
+$khachhang = new khachhang($db);
+
 // Lấy dữ liệu POST
 $booking_date = trim($_POST['booking_date'] ?? '');
-$booking_time = trim($_POST['booking_time'] ?? '');
+$booking_time = trim($_POST['maKhungGio'] ?? '');
 $problem_description = trim($_POST['problem_description'] ?? '');
 $customer_address = trim($_POST['customer_address'] ?? '');
+$customer_name = trim($_POST['customer_name'] ?? '');
+$customer_phone = trim($_POST['customer_phone'] ?? '');
 $device_types = $_POST['device_types'] ?? [];
 $device_models = $_POST['device_models'] ?? [];
 $device_problems = $_POST['device_problems'] ?? [];
@@ -28,6 +35,8 @@ $is_immediate_service = 0; // Luôn là 0 vì chỉ có đặt lịch hẹn
 error_log("=== DEBUG PROCESS BOOKING ===");
 error_log("Booking date: " . $booking_date);
 error_log("Booking time: " . $booking_time);
+error_log("Customer name: " . $customer_name);
+error_log("Customer phone: " . $customer_phone);
 error_log("Customer address: " . $customer_address);
 error_log("Device types count: " . count($device_types));
 error_log("Device models count: " . count($device_models));
@@ -35,6 +44,17 @@ error_log("Device problems count: " . count($device_problems));
 
 // VALIDATE DỮ LIỆU
 $errors = [];
+
+// Validate thông tin khách hàng
+if (empty($customer_name)) {
+    $errors[] = "Vui lòng nhập họ và tên";
+}
+
+if (empty($customer_phone)) {
+    $errors[] = "Vui lòng nhập số điện thoại";
+} elseif (!preg_match('/^(0|\+84)[0-9]{9,10}$/', $customer_phone)) {
+    $errors[] = "Số điện thoại không hợp lệ";
+}
 
 // Validate địa chỉ
 if (empty($customer_address)) {
@@ -51,9 +71,19 @@ if (empty($device_types)) {
         }
     }
     
+    foreach ($device_models as $index => $model) {
+        if (empty(trim($model))) {
+            $errors[] = "Vui lòng nhập thông tin phiên bản/thương hiệu cho thiết bị " . ($index + 1);
+        } elseif (strlen(trim($model)) < 2) {
+            $errors[] = "Thông tin thiết bị " . ($index + 1) . " phải có ít nhất 2 ký tự";
+        }
+    }
+    
     foreach ($device_problems as $index => $problem) {
         if (empty(trim($problem))) {
             $errors[] = "Vui lòng mô tả tình trạng hư hỏng cho thiết bị " . ($index + 1);
+        } elseif (strlen(trim($problem)) < 10) {
+            $errors[] = "Mô tả tình trạng thiết bị " . ($index + 1) . " phải có ít nhất 10 ký tự";
         }
     }
 }
@@ -72,36 +102,18 @@ if (empty($booking_date)) {
 
 if (empty($booking_time)) {
     $errors[] = "Vui lòng chọn khung giờ đặt lịch";
-} else {
-    // Validate khung giờ hợp lệ (1 = sáng, 2 = chiều)
-    if (!in_array($booking_time, ['1', '2'])) {
-        $errors[] = "Khung giờ không hợp lệ";
-    }
-    
-    // Kiểm tra nếu đặt lịch cho ngày hôm nay
-    $selected_date = DateTime::createFromFormat('Y-m-d', $booking_date);
-    $today = new DateTime('today');
-    $current_hour = date('H');
-    
-    if ($selected_date == $today) {
-        if ($booking_time == '1' && $current_hour >= 12) {
-            $errors[] = "Không thể đặt ca sáng cho ngày hôm nay sau 12:00";
-        }
-        if ($booking_time == '2' && $current_hour >= 18) {
-            $errors[] = "Không thể đặt ca chiều cho ngày hôm nay sau 18:00";
-        }
-    }
 }
 
-// Kiểm tra số lượng slot available (nếu cần)
-require_once __DIR__ . '/../controllers/BookingController.php';
-$bookingController = new BookingController($db);
-$availableSlots = $bookingController->getAvailableSlots();
-
-if (isset($availableSlots[$booking_date][$booking_time])) {
-    $slot = $availableSlots[$booking_date][$booking_time];
-    if ($slot['available'] <= 0 || $slot['disabled']) {
-        $errors[] = "Khung giờ này đã hết slot. Vui lòng chọn khung giờ khác!";
+// Kiểm tra slot khả dụng với DichVuService
+if (!empty($booking_date) && !empty($booking_time)) {
+    try {
+        $slotInfo = $dichVuService->kiemTraSlotKhaDung($booking_date, $booking_time);
+        
+        if (!$slotInfo['kha_dung']) {
+            $errors[] = "Khung giờ này không khả dụng: " . $slotInfo['ly_do'];
+        }
+    } catch (Exception $e) {
+        $errors[] = "Lỗi kiểm tra khung giờ: " . $e->getMessage();
     }
 }
 
@@ -109,6 +121,8 @@ if (isset($availableSlots[$booking_date][$booking_time])) {
 if (!empty($errors)) {
     $_SESSION['error'] = implode("<br>", $errors);
     $_SESSION['form_data'] = [
+        'customer_name' => $customer_name,
+        'customer_phone' => $customer_phone,
         'customer_address' => $customer_address,
         'booking_date' => $booking_date,
         'booking_time' => $booking_time,
@@ -122,13 +136,13 @@ if (!empty($errors)) {
 }
 
 try {
-    //$userModel = new User($db);
+    
 
-    // Gọi phương thức thêm đơn dịch vụ
-    $maDon = $bookingController->themDonDichVu(
+    // Gọi phương thức thêm đơn dịch vụ từ DichVuService
+    $maDon = $dichVuService->themDonDichVu(
         $maKH,
         $booking_date,
-        $booking_time, // Giờ đặt (1 = sáng, 2 = chiều)
+        $booking_time,
         $problem_description,
         $customer_address,
         $device_types,
@@ -138,22 +152,33 @@ try {
         $is_immediate_service
     );
 
-    // Thông báo thành công
-    $ngay_hien = date('d/m/Y', strtotime($booking_date));
-    $thoi_gian = getTimeSlotText($booking_time);
-    
-    $_SESSION['success'] = "✅ <strong>Đặt lịch sửa chữa thành công!</strong><br>
-                           Mã đơn: <strong>#$maDon</strong><br>
-                           Thời gian: <strong>$ngay_hien - $thoi_gian</strong><br>
-                           Địa chỉ: <strong>$customer_address</strong>";
+    if ($maDon) {
+        // Thông báo thành công
+        $ngay_hien = date('d/m/Y', strtotime($booking_date));
+        
+        // Lấy thông tin khung giờ để hiển thị
+        $thongTinKhungGio = $dichVuService->layThongTinKhungGio($booking_time);
+        $thoi_gian = $thongTinKhungGio ? $thongTinKhungGio['khoangGio'] : 'Không xác định';
+        
+        $_SESSION['success'] = "✅ <strong>Đặt lịch sửa chữa thành công!</strong><br>
+                               Mã đơn: <strong>#$maDon</strong><br>
+                               Thời gian: <strong>$ngay_hien - $thoi_gian</strong><br>
+                               Địa chỉ: <strong>$customer_address</strong><br>
+                               Nhân viên sẽ liên hệ bạn trong vòng 30 phút để xác nhận lịch hẹn.";
 
-    unset($_SESSION['form_data']);
-    //header("Location: " . url('my_orders'));
-    exit;
+        unset($_SESSION['form_data']);
+        header("Location: " . url('my_orders'));
+        exit;
+    } else {
+        throw new Exception("Không thể tạo đơn dịch vụ");
+    }
 
 } catch (Exception $e) {
+    error_log("Lỗi đặt lịch: " . $e->getMessage());
     $_SESSION['error'] = "Lỗi hệ thống, vui lòng thử lại: " . $e->getMessage();
     $_SESSION['form_data'] = [
+        'customer_name' => $customer_name,
+        'customer_phone' => $customer_phone,
         'customer_address' => $customer_address,
         'booking_date' => $booking_date,
         'booking_time' => $booking_time,
@@ -164,12 +189,4 @@ try {
     ];
     header("Location: " . url('datdichvu'));
     exit;
-}
-
-function getTimeSlotText($time_slot) {
-    $time_slots = [
-        '1' => 'Ca sáng (7:30 - 12:00)',
-        '2' => 'Ca chiều (13:00 - 18:00)'
-    ];
-    return $time_slots[$time_slot] ?? 'Không xác định';
 }

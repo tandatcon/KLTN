@@ -1,0 +1,180 @@
+<?php
+if (!defined('BASE_URL')) {
+    require_once __DIR__ . '/../config.php';
+    require_once __DIR__ . '/../helpers.php';
+}
+
+$pageTitle = "Đặt dịch vụ - TechCare";
+include VIEWS_PATH . '/header.php';
+
+if (!isset($_SESSION['user_id'])) {
+    $_SESSION['error_message'] = "Vui lòng đăng nhập để đặt lịch!";
+    header('Location: ' . url('login'));
+    exit();
+}
+
+// Include class DichVuService
+require_once __DIR__ . '/../function/dichvu.php';
+require_once __DIR__ . '/../function/khachhang.php';
+
+// Khởi tạo đối tượng DichVuService
+$dichVuService = new DichVuService($db);
+$khachhang = new khachhang($db);
+?>
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Slot Khả Dụng</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        
+        .slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
+        .slot-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #f9f9f9; }
+        .slot-card.vo-hieu-hoa { background: #ffe6e6; border-color: #ffcccc; }
+        .slot-card.da-qua-gio { background: #f0f0f0; border-color: #cccccc; }
+        .slot-card.dang-trong-gio { background: #e6f7ff; border-color: #b3e0ff; }
+        
+        .slot-info { margin: 5px 0; }
+        .slot-trang-thai { font-weight: bold; margin-top: 10px; padding: 5px; border-radius: 4px; }
+        .co-the-dat { background: #d4edda; color: #155724; }
+        .het-slot { background: #f8d7da; color: #721c24; }
+        .da-qua-gio { background: #e2e3e5; color: #383d41; }
+        
+        .debug-section { margin-top: 30px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; }
+        .debug-info { background: white; padding: 10px; border-radius: 4px; margin-top: 10px; font-family: monospace; font-size: 12px; }
+        
+        .thong-ke { background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .thong-ke-item { display: inline-block; margin-right: 20px; padding: 10px; background: white; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Slot Khả Dụng - Debug Logic</h1>
+        
+        <!-- Form chọn ngày -->
+        <div class="form-group">
+            <form method="POST">
+                <label for="ngay_chon">Chọn ngày để test:</label>
+                <input type="date" id="ngay_chon" name="ngay_chon" value="<?= htmlspecialchars($ngayChon) ?>" 
+                       min="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d', strtotime('+30 days')) ?>">
+                <button type="submit">Kiểm tra Slot</button>
+            </form>
+        </div>
+
+        <!-- Thống kê -->
+        <div class="thong-ke">
+            <h3>📊 Thống kê ngày <?= htmlspecialchars($ngayChon) ?></h3>
+            <?php
+            $tongKhungGio = count($slots);
+            $coTheDat = 0;
+            $hetSlot = 0;
+            $daQuaGio = 0;
+            
+            foreach ($slots as $slot) {
+                if ($slot['da_qua_gio']) $daQuaGio++;
+                elseif ($slot['vo_hieu_hoa']) $hetSlot++;
+                else $coTheDat++;
+            }
+            ?>
+            <div class="thong-ke-item">Tổng khung giờ: <strong><?= $tongKhungGio ?></strong></div>
+            <div class="thong-ke-item" style="color: green;">Có thể đặt: <strong><?= $coTheDat ?></strong></div>
+            <div class="thong-ke-item" style="color: red;">Hết slot: <strong><?= $hetSlot ?></strong></div>
+            <div class="thong-ke-item" style="color: gray;">Đã qua giờ: <strong><?= $daQuaGio ?></strong></div>
+            <div class="thong-ke-item">Tổng KTV: <strong><?= $slots ? reset($slots)['tong_ktv'] : 0 ?></strong></div>
+        </div>
+
+        <!-- Danh sách slot -->
+        <div class="slots-grid">
+            <?php foreach ($slots as $maKhungGio => $slot): ?>
+                <div class="slot-card <?= $slot['vo_hieu_hoa'] ? 'vo-hieu-hoa' : '' ?> 
+                             <?= $slot['da_qua_gio'] ? 'da-qua-gio' : '' ?>
+                             <?= $slot['dang_trong_gio'] ? 'dang-trong-gio' : '' ?>">
+                    
+                    <h3><?= htmlspecialchars($slot['pham_vi']) ?></h3>
+                    <div class="slot-info">⏰ <?= $slot['gio_bat_dau'] ?>:00 - <?= $slot['gio_ket_thuc'] ?>:00</div>
+                    <div class="slot-info">👥 Tổng KTV: <?= $slot['tong_ktv'] ?></div>
+                    <div class="slot-info">📦 Slot tối đa: <?= $slot['toi_da'] ?></div>
+                    <div class="slot-info">✅ Đã đặt: <?= $slot['da_dat'] ?></div>
+                    <div class="slot-info">🎯 Khả dụng: <?= $slot['kha_dung'] ?></div>
+                    
+                    <div class="slot-trang-thai <?= 
+                        $slot['da_qua_gio'] ? 'da-qua-gio' : 
+                        ($slot['vo_hieu_hoa'] ? 'het-slot' : 'co-the-dat')
+                    ?>">
+                        <?= $slot['ly_do'] ?>
+                    </div>
+                    
+                    <!-- Debug info -->
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        <div>Mã khung: <?= $maKhungGio ?></div>
+                        <div>Đang trong giờ: <?= $slot['dang_trong_gio'] ? 'YES' : 'NO' ?></div>
+                        <div>Đã qua giờ: <?= $slot['da_qua_gio'] ? 'YES' : 'NO' ?></div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Debug KTV -->
+        <div class="debug-section">
+            <h3>🐛 Debug Thông Tin KTV</h3>
+            <button onclick="toggleDebug()">Hiện/Ẩn Debug Info</button>
+            
+            <div id="debugInfo" class="debug-info" style="display: none;">
+                <h4>Tất cả KTV trong hệ thống:</h4>
+                <pre><?= print_r($debugKTV['all_ktv'] ?? [], true) ?></pre>
+                
+                <h4>Lịch nghỉ ngày <?= htmlspecialchars($ngayChon) ?>:</h4>
+                <pre><?= print_r($debugKTV['lich_nghi'] ?? [], true) ?></pre>
+                
+                <h4>Thông tin slot (raw data):</h4>
+                <pre><?= print_r($slots, true) ?></pre>
+            </div>
+        </div>
+
+        <!-- Test đặt lịch -->
+        <div class="debug-section">
+            <h3>🧪 Test Đặt Lịch</h3>
+            <form method="POST" action="test_dat_lich.php">
+                <input type="hidden" name="ngay_dat" value="<?= htmlspecialchars($ngayChon) ?>">
+                
+                <label>Chọn khung giờ:</label>
+                <select name="ma_khung_gio">
+                    <?php foreach ($slots as $maKhungGio => $slot): ?>
+                        <option value="<?= $maKhungGio ?>" 
+                                <?= $slot['vo_hieu_hoa'] ? 'disabled' : '' ?>>
+                            <?= $slot['pham_vi'] ?> 
+                            (<?= $slot['kha_dung'] ?> slot) 
+                            - <?= $slot['ly_do'] ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <button type="submit" name="test_dat_lich">Test Đặt Lịch</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleDebug() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Auto-refresh nếu là ngày hôm nay
+        <?php if ($ngayChon === date('Y-m-d')): ?>
+        setTimeout(() => {
+            document.querySelector('form').submit();
+        }, 30000); // Refresh mỗi 30 giây
+        <?php endif; ?>
+    </script>
+</body>
+</html>

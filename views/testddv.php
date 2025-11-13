@@ -14,21 +14,32 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-require_once __DIR__ . '/../controllers/BookingController.php';
-$bookingController = new BookingController($db);
-$data = $bookingController->showBookingPage();
-$devices = $data['devices'];
-$availableSlots = $bookingController->getAvailableSlots();
+// Include class DichVuService
+require_once __DIR__ . '/../function/dichvu.php';
+require_once __DIR__ . '/../function/khachhang.php';
 
-// Lấy thông tin hiện tại
-$currentHour = date('H');
+// Khởi tạo đối tượng DichVuService
+$dichVuService = new DichVuService($db);
+$khachhang = new khachhang($db);
+
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
+// Lấy ngày hiện tại
 $currentDate = date('Y-m-d');
+$currentHour = date('H');
+
+// Lấy dữ liệu
+$devices = $dichVuService->layDanhSachThietBi();
+$danhSachKhungGio = $dichVuService->layDanhSachKhungGio();
+
+$maKH = $_SESSION['user_id'] ?? [];
+$userInfo = $khachhang->layKHByID($maKH)
 ?>
 
 <section class="py-4">
     <div class="container">
         <!-- Header -->
-        <div class="card border-0 s mb-4">
+        <div class="card border-0 shadow mb-4">
             <div class="card-body p-4 p-md-5 text-center">
                 <div class="">
                     <h1 class="display-5 fw-bold mb-3 text-primary">
@@ -42,6 +53,7 @@ $currentDate = date('Y-m-d');
         <!-- FORM CHÍNH -->
         <form id="serviceBookingForm" action="<?php echo url('process_booking'); ?>" method="POST">
             <input type="hidden" id="booking_date" name="booking_date" value="<?php echo $currentDate; ?>">
+            <input type="hidden" name="id_khachhang" value="<?php echo $userInfo['maND'] ?? ''; ?>">
 
             <div class="row">
                 <!-- Cột trái: Thông tin khách hàng & Thiết bị -->
@@ -57,7 +69,7 @@ $currentDate = date('Y-m-d');
                                     <label class="form-label">Họ và tên *</label>
                                     <input type="text" class="form-control input-gray" id="customer_name"
                                         name="customer_name"
-                                        value="<?php echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : ''; ?>"
+                                        value="<?php echo isset($userInfo['hoTen']) ? htmlspecialchars($userInfo['hoTen']) : ''; ?>"
                                         required placeholder="Nhập họ và tên">
                                 </div>
 
@@ -65,7 +77,7 @@ $currentDate = date('Y-m-d');
                                     <label class="form-label">Số điện thoại *</label>
                                     <input type="tel" class="form-control input-gray" id="customer_phone"
                                         name="customer_phone"
-                                        value="<?php echo isset($_SESSION['user_phone']) ? htmlspecialchars($_SESSION['user_phone']) : ''; ?>"
+                                        value="<?php echo isset($userInfo['sdt']) ? htmlspecialchars($userInfo['sdt']) : ''; ?>"
                                         required placeholder="Nhập số điện thoại">
                                 </div>
 
@@ -186,81 +198,24 @@ $currentDate = date('Y-m-d');
                                     <h6 class="text-primary mb-3">
                                         <i class="fas fa-clock me-2"></i>Chọn khung giờ
                                     </h6>
+                                    
+                                    <!-- Loading indicator -->
+                                    <div id="loading-slots" class="text-center py-3 d-none">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Đang tải khung giờ...</p>
+                                    </div>
+
                                     <div class="time-selection">
-                                        <div class="row g-2">
-                                            <!-- Ca sáng -->
-                                            <div class="col-md-6">
-                                                <?php 
-                                                $morningSlot = $availableSlots[$currentDate][1] ?? ['available' => 0, 'disabled' => true];
-                                                $morningDisabled = $morningSlot['disabled'] || $morningSlot['available'] <= 0;
-                                                ?>
-                                                <div class="time-slot-group text-center">
-                                                    <input type="radio" class="btn-check time-slot-radio" name="booking_time" 
-                                                           id="time_sang" value="1" 
-                                                           <?php echo $morningDisabled ? 'disabled' : ''; ?>>
-                                                    <label class="btn btn-outline-primary w-100 py-3 time-slot-label <?php echo $morningDisabled ? 'time-slot-disabled' : ''; ?>" 
-                                                           for="time_sang" data-slot-type="morning">
-                                                        <div class="fw-bold">CA SÁNG</div>
-                                                        <small class="text-muted">7:30 - 12:00</small>
-                                                        <div class="slot-info mt-1">
-                                                            <?php if ($morningDisabled): ?>
-                                                                <small class="text-danger">
-                                                                    <?php echo ($currentHour >= 12) ? 'Đã hết giờ' : 'Đã hết slot'; ?>
-                                                                </small>
-                                                            <?php else: ?>
-                                                                <small class="text-success">
-                                                                    Còn <?php echo $morningSlot['available']; ?> slot
-                                                                </small>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            <!-- Ca chiều -->
-                                            <div class="col-md-6">
-                                                <?php 
-                                                $afternoonSlot = $availableSlots[$currentDate][2] ?? ['available' => 0, 'disabled' => true];
-                                                $afternoonDisabled = $afternoonSlot['disabled'] || $afternoonSlot['available'] <= 0;
-                                                ?>
-                                                <div class="time-slot-group text-center">
-                                                    <input type="radio" class="btn-check time-slot-radio" name="booking_time" 
-                                                           id="time_chieu" value="2" 
-                                                           <?php echo $afternoonDisabled ? 'disabled' : ''; ?>>
-                                                    <label class="btn btn-outline-primary w-100 py-3 time-slot-label <?php echo $afternoonDisabled ? 'time-slot-disabled' : ''; ?>" 
-                                                           for="time_chieu" data-slot-type="afternoon">
-                                                        <div class="fw-bold">CA CHIỀU</div>
-                                                        <small class="text-muted">13:00 - 18:00</small>
-                                                        <div class="slot-info mt-1">
-                                                            <?php if ($afternoonDisabled): ?>
-                                                                <small class="text-danger">
-                                                                    <?php echo ($currentHour >= 18) ? 'Đã hết giờ' : 'Đã hết slot'; ?>
-                                                                </small>
-                                                            <?php else: ?>
-                                                                <small class="text-success">
-                                                                    Còn <?php echo $afternoonSlot['available']; ?> slot
-                                                                </small>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </label>
-                                                </div>
-                                            </div>
+                                        <div class="row g-2" id="time-slots-container">
+                                            <!-- Slots will be populated by JavaScript -->
                                         </div>
+                                    </div>
 
-                                        <!-- Thông tin phân bổ -->
-                                        <div class="mt-3 p-3 bg-light rounded small" id="slot-info-display">
-                                            <div class="row">
-                                                <div class="col-6">
-                                                    <strong>Ca sáng:</strong><br>
-                                                    Đã đặt: <span id="morning-booked"><?php echo $morningSlot['booked'] ?? 0; ?></span>/<span id="morning-max"><?php echo $morningSlot['max'] ?? 0; ?></span><br>
-                                                    KTV hoàn thành: <span id="morning-completed"><?php echo $morningSlot['completed'] ?? 0; ?></span>
-                                                </div>
-                                                <div class="col-6">
-                                                    <strong>Ca chiều:</strong><br>
-                                                    Đã đặt: <span id="afternoon-booked"><?php echo $afternoonSlot['booked'] ?? 0; ?></span>/<span id="afternoon-max"><?php echo $afternoonSlot['max'] ?? 0; ?></span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <!-- Thông tin phân bổ -->
+                                    <div class="mt-3 p-3 bg-light rounded small" id="slot-info-display">
+                                        <p class="text-muted mb-0">Chọn ngày để xem thông tin phân bổ KTV</p>
                                     </div>
                                 </div>
                             </div>
@@ -272,7 +227,7 @@ $currentDate = date('Y-m-d');
                                 </h5>
                                 <textarea class="form-control input-gray" id="problem_description"
                                     name="problem_description" rows="3"
-                                    placeholder="Ghi chú của bạn giành cho chúng tôi..."></textarea>
+                                    placeholder="Ghi chú của bạn dành cho chúng tôi..."></textarea>
                             </div>
 
                             <!-- Nút đặt lịch -->
@@ -294,7 +249,7 @@ $currentDate = date('Y-m-d');
 
         <!-- Banner waiting image -->
         <div class="banner-image-container text-center mt-4">
-            <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner" style="width:50%;">
+            <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner" class="banner-image">
         </div>
 
         <!-- Nút chỉ đường -->
@@ -395,242 +350,179 @@ $currentDate = date('Y-m-d');
 </style>
 
 <script>
-// DỮ LIỆU TỪ PHP
-const currentHour = <?php echo $currentHour; ?>;
-const currentDate = '<?php echo $currentDate; ?>';
+// BIẾN TOÀN CỤC
+let currentSelectedDate = '<?php echo $currentDate; ?>';
+let deviceCount = 1;
+const maxDevices = 3;
 
-// CLASS QUẢN LÝ LỊCH
-class ScheduleManager {
-    constructor() {
-        this.selectedDate = null;
-        this.selectedTime = null;
-        this.init();
-    }
+// DANH SÁCH QUẬN ĐƯỢC PHÉP
+const allowedDistricts = ['764', '761', '765', '766', '768', '784'];
 
-    init() {
-        this.generateDateGrid();
-        this.setupEventListeners();
-        this.updateTimeSlotsForToday();
-    }
+// KHỞI TẠO KHI TRANG LOAD
+document.addEventListener('DOMContentLoaded', function() {
+    initAddressAPI();
+    generateDateGrid();
+    loadSlotsForDate(currentSelectedDate);
+    initDeviceManagement();
+    initFormValidation();
+});
 
-    // Tạo lưới ngày từ hôm nay đến 7 ngày tiếp theo
-    generateDateGrid() {
-        const dateGrid = document.getElementById('date-grid');
-        const today = new Date();
-
-        if (!dateGrid) return;
-
-        dateGrid.innerHTML = '';
-
-        // Hiển thị từ hôm nay đến 7 ngày tiếp theo
-        for (let i = 0; i < 8; i++) {
-            const date = new Date();
-            date.setDate(today.getDate() + i);
-
-            const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-            const dayName = dayNames[date.getDay()];
-            const dayNumber = date.getDate();
-            const month = date.getMonth() + 1;
-            const dateString = date.toISOString().split('T')[0];
-
-            const dateElement = document.createElement('div');
-            dateElement.className = 'col-4 col-sm-3 col-md-3';
-            dateElement.innerHTML = `
-                <input type="radio" class="btn-check date-radio" name="booking_date" id="date_${i}" value="${dateString}" autocomplete="off">
-                <label class="btn btn-outline-secondary date-btn w-100" for="date_${i}">
-                    <div class="fw-bold">${dayName}</div>
-                    <div class="small">${dayNumber}/${month}</div>
-                </label>
-            `;
-
-            dateGrid.appendChild(dateElement);
-        }
-
-        // Tự động chọn ngày đầu tiên (hôm nay)
-        const firstDateRadio = document.querySelector('.date-radio');
-        if (firstDateRadio) {
-            firstDateRadio.checked = true;
-            this.selectedDate = firstDateRadio.value;
-            document.getElementById('booking_date').value = this.selectedDate;
-        }
-    }
-
-    // Cập nhật trạng thái khung giờ khi chọn ngày
-    updateTimeSlotsStatus(selectedDate) {
-        const today = new Date().toISOString().split('T')[0];
-        const isToday = selectedDate === today;
-        
-        const morningRadio = document.getElementById('time_sang');
-        const afternoonRadio = document.getElementById('time_chieu');
-        const morningLabel = document.querySelector('label[for="time_sang"]');
-        const afternoonLabel = document.querySelector('label[for="time_chieu"]');
-
-        if (isToday) {
-            // Nếu là ngày hôm nay, sử dụng logic hiện tại
-            this.updateTimeSlotsForToday();
-        } else {
-            // Nếu là ngày khác, reset về trạng thái có thể đặt
-            morningRadio.disabled = false;
-            afternoonRadio.disabled = false;
-            morningLabel.classList.remove('time-slot-disabled');
-            afternoonLabel.classList.remove('time-slot-disabled');
-            
-            const morningSlotInfo = morningLabel.querySelector('.slot-info');
-            const afternoonSlotInfo = afternoonLabel.querySelector('.slot-info');
-            
-            morningSlotInfo.innerHTML = '<small class="text-success">Có thể đặt</small>';
-            afternoonSlotInfo.innerHTML = '<small class="text-success">Có thể đặt</small>';
-            
-            // Ẩn thông tin phân bổ cho các ngày khác
-            document.getElementById('slot-info-display').style.display = 'none';
-        }
-    }
-
-    // Cập nhật khung giờ cho ngày hôm nay
-    updateTimeSlotsForToday() {
-        const morningRadio = document.getElementById('time_sang');
-        const afternoonRadio = document.getElementById('time_chieu');
-        const morningLabel = document.querySelector('label[for="time_sang"]');
-        const afternoonLabel = document.querySelector('label[for="time_chieu"]');
-
-        // Logic cho ca sáng
-        const morningDisabled = currentHour >= 12;
-        morningRadio.disabled = morningDisabled;
-        if (morningDisabled) {
-            morningLabel.classList.add('time-slot-disabled');
-            morningLabel.querySelector('.slot-info').innerHTML = '<small class="text-danger">Đã hết giờ</small>';
-        }
-
-        // Logic cho ca chiều
-        const afternoonDisabled = currentHour >= 18;
-        afternoonRadio.disabled = afternoonDisabled;
-        if (afternoonDisabled) {
-            afternoonLabel.classList.add('time-slot-disabled');
-            afternoonLabel.querySelector('.slot-info').innerHTML = '<small class="text-danger">Đã hết giờ</small>';
-        }
-
-        // Hiển thị thông tin phân bổ
-        document.getElementById('slot-info-display').style.display = 'block';
-    }
-
-    setupEventListeners() {
-        // Lắng nghe sự kiện chọn ngày
-        document.addEventListener('change', (e) => {
-            if (e.target.name === 'booking_date') {
-                this.selectedDate = e.target.value;
-                document.getElementById('booking_date').value = this.selectedDate;
-                this.updateTimeSlotsStatus(this.selectedDate);
-                this.selectedTime = null; // Reset thời gian khi chọn ngày mới
-            }
-
-            if (e.target.name === 'booking_time') {
-                this.selectedTime = e.target.value;
-            }
-        });
-    }
-}
-
-// CLASS QUẢN LÝ API ĐỊA CHỈ (Chỉ hiển thị Bình Thạnh và Gò Vấp)
-class AddressAPI {
-    constructor() {
-        this.baseURL = 'https://provinces.open-api.vn/api/';
-        this.allowedDistricts = ['760', '761']; // Bình Thạnh và Gò Vấp
-        this.init();
-    }
-
-    async fetchData(url) {
+// QUẢN LÝ ĐỊA CHỈ VỚI API
+function initAddressAPI() {
+    const provinceSelect = document.getElementById('province');
+    const districtSelect = document.getElementById('district');
+    const wardSelect = document.getElementById('ward');
+    const streetInput = document.getElementById('street_address');
+    
+    const baseURL = 'https://provinces.open-api.vn/api/';
+    
+    // KHỞI TẠO ĐỊA CHỈ
+    initializeAddress();
+    
+    async function initializeAddress() {
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Network response was not ok');
-            return await response.json();
+            // SET TP HCM MẶC ĐỊNH
+            provinceSelect.innerHTML = '<option value="">Thành phố</option>';
+            const hcmOption = document.createElement('option');
+            hcmOption.value = '79';
+            hcmOption.textContent = 'TP Hồ Chí Minh';
+            provinceSelect.appendChild(hcmOption);
+            provinceSelect.value = '79';
+            
+            // LOAD QUẬN/HUYỆN
+            districtSelect.disabled = false;
+            await loadDistricts();
+            
+            // THIẾT LẬP EVENT LISTENERS
+            setupEventListeners();
+            
+            // CẬP NHẬT ĐỊA CHỈ BAN ĐẦU
+            updateAddress();
+            
         } catch (error) {
-            console.error('Lỗi khi fetch dữ liệu địa chỉ:', error);
-            this.showManualAddress();
-            return [];
+            console.error('Lỗi khởi tạo địa chỉ:', error);
         }
     }
-
-    async loadHCMData() {
-        const provinceSelect = document.getElementById('province');
-        if (!provinceSelect) return;
-
+    
+    // LOAD DANH SÁCH QUẬN/HUYỆN
+    async function loadDistricts() {
         try {
-            const provinces = await this.fetchData(this.baseURL + '?depth=1');
-            const hcm = provinces.find(p => p.name === 'Thành phố Hồ Chí Minh');
-
-            if (hcm) {
+            districtSelect.innerHTML = '<option value="">Đang tải...</option>';
+            districtSelect.disabled = true;
+            
+            const response = await fetch(`${baseURL}p/79?depth=2`);
+            if (!response.ok) throw new Error('Lỗi kết nối API');
+            
+            const data = await response.json();
+            
+            // LỌC CHỈ CÁC QUẬN ĐƯỢC PHÉP
+            const filteredDistricts = data.districts.filter(district => 
+                allowedDistricts.includes(district.code.toString())
+            );
+            
+            // CẬP NHẬT DROPDOWN QUẬN
+            districtSelect.innerHTML = '<option value="">Quận/Huyện</option>';
+            filteredDistricts.forEach(district => {
                 const option = document.createElement('option');
-                option.value = hcm.code;
-                option.textContent = 'TP Hồ Chí Minh';
-                provinceSelect.appendChild(option);
-                provinceSelect.value = hcm.code;
-                await this.loadDistricts(hcm.code);
-            } else {
-                this.showManualAddress();
-            }
+                option.value = district.code;
+                option.textContent = district.name;
+                districtSelect.appendChild(option);
+            });
+            
+            districtSelect.disabled = false;
+            
         } catch (error) {
-            this.showManualAddress();
+            console.error('Lỗi load quận/huyện:', error);
+            // NẾU LỖI, VẪN HIỂN THỊ CÁC QUẬN ĐƯỢC PHÉP
+            districtSelect.innerHTML = '<option value="">Quận/Huyện</option>';
+            const districts = [
+                {code: '764', name: 'Quận 1'},
+                {code: '761', name: 'Quận 3'},
+                {code: '765', name: 'Quận 4'},
+                {code: '766', name: 'Quận 5'},
+                {code: '768', name: 'Quận 10'},
+                {code: '784', name: 'Quận Bình Thạnh'}
+            ];
+            
+            districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district.code;
+                option.textContent = district.name;
+                districtSelect.appendChild(option);
+            });
+            districtSelect.disabled = false;
         }
     }
-
-    async loadDistricts(provinceCode) {
-        const districtSelect = document.getElementById('district');
-        if (!districtSelect) return;
-
-        try {
-            const province = await this.fetchData(this.baseURL + `p/${provinceCode}?depth=2`);
-
-            if (province && province.districts) {
-                districtSelect.innerHTML = '<option value="">Quận/Huyện</option>';
-                
-                const allowedDistrictsList = province.districts.filter(district => 
-                    this.allowedDistricts.includes(district.code.toString())
-                );
-
-                allowedDistrictsList.forEach(district => {
-                    const option = document.createElement('option');
-                    option.value = district.code;
-                    option.textContent = district.name;
-                    districtSelect.appendChild(option);
-                });
-                
-                districtSelect.disabled = false;
-            }
-        } catch (error) {
-            console.error('Lỗi khi load districts:', error);
+    
+    // LOAD PHƯỜNG/XÃ KHI CHỌN QUẬN
+    async function loadWardsByDistrict(districtCode) {
+        if (!districtCode) {
+            resetWardSelect();
+            return;
         }
-    }
-
-    async loadWards(districtCode) {
-        const wardSelect = document.getElementById('ward');
-        if (!wardSelect) return;
-
+        
         try {
-            const district = await this.fetchData(this.baseURL + `d/${districtCode}?depth=2`);
-
-            if (district && district.wards) {
-                wardSelect.innerHTML = '<option value="">Phường/Xã</option>';
-                district.wards.forEach(ward => {
+            // KIỂM TRA QUẬN CÓ ĐƯỢC PHÉP KHÔNG
+            if (!allowedDistricts.includes(districtCode)) {
+                wardSelect.innerHTML = '<option value="">Quận không được hỗ trợ</option>';
+                wardSelect.disabled = true;
+                return;
+            }
+            
+            wardSelect.innerHTML = '<option value="">Đang tải...</option>';
+            wardSelect.disabled = true;
+            
+            const response = await fetch(`${baseURL}d/${districtCode}?depth=2`);
+            if (!response.ok) throw new Error('Lỗi kết nối API');
+            
+            const data = await response.json();
+            const wards = data.wards || [];
+            
+            // CẬP NHẬT DROPDOWN PHƯỜNG/XÃ
+            wardSelect.innerHTML = '<option value="">Phường/Xã</option>';
+            
+            if (wards.length > 0) {
+                wards.forEach(ward => {
                     const option = document.createElement('option');
                     option.value = ward.code;
                     option.textContent = ward.name;
                     wardSelect.appendChild(option);
                 });
                 wardSelect.disabled = false;
+            } else {
+                wardSelect.innerHTML = '<option value="">Không có dữ liệu</option>';
+                wardSelect.disabled = true;
             }
+            
         } catch (error) {
-            console.error('Lỗi khi load wards:', error);
+            console.error('Lỗi load phường/xã:', error);
+            wardSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+            wardSelect.disabled = true;
         }
     }
-
-    showManualAddress() {
-        const addressContainer = document.querySelector('.address-select-container');
-        if (addressContainer) {
-            addressContainer.style.display = 'none';
-        }
+    
+    function resetWardSelect() {
+        wardSelect.innerHTML = '<option value="">Phường/Xã</option>';
+        wardSelect.disabled = true;
     }
-
-    updateAddress() {
+    
+    // THIẾT LẬP EVENT LISTENERS
+    function setupEventListeners() {
+        // KHI CHỌN QUẬN
+        districtSelect.addEventListener('change', function() {
+            loadWardsByDistrict(this.value);
+            updateAddress();
+        });
+        
+        // KHI CHỌN PHƯỜNG/XÃ
+        wardSelect.addEventListener('change', updateAddress);
+        
+        // KHI NHẬP ĐỊA CHỈ ĐƯỜNG
+        streetInput.addEventListener('input', updateAddress);
+    }
+    
+    // CẬP NHẬT ĐỊA CHỈ HOÀN CHỈNH
+    function updateAddress() {
         const province = document.getElementById('province');
         const district = document.getElementById('district');
         const ward = document.getElementById('ward');
@@ -638,11 +530,11 @@ class AddressAPI {
         const addressDisplay = document.getElementById('full_address_display');
         const addressInput = document.getElementById('customer_address');
 
-        if (!province || !district || !ward || !street || !addressDisplay || !addressInput) return;
+        if (!province || !district || !street || !addressDisplay || !addressInput) return;
 
         let addressParts = [];
         if (street.value) addressParts.push(street.value);
-        if (ward.selectedIndex > 0) addressParts.push(ward.options[ward.selectedIndex].textContent);
+        if (ward && ward.selectedIndex > 0) addressParts.push(ward.options[ward.selectedIndex].textContent);
         if (district.selectedIndex > 0) addressParts.push(district.options[district.selectedIndex].textContent);
         if (province.selectedIndex > 0) addressParts.push(province.options[province.selectedIndex].textContent);
 
@@ -656,186 +548,350 @@ class AddressAPI {
             addressInput.value = '';
         }
     }
+}
 
-    init() {
-        this.loadHCMData();
+// TẠO LƯỚI NGÀY
+function generateDateGrid() {
+    const dateGrid = document.getElementById('date-grid');
+    if (!dateGrid) return;
 
-        const districtSelect = document.getElementById('district');
-        const wardSelect = document.getElementById('ward');
-        const streetInput = document.getElementById('street_address');
+    const phpDate = '<?php echo $currentDate; ?>';
+    const [year, month, day] = phpDate.split('-').map(Number);
+    
+    const baseDate = new Date(year, month - 1, day, 12, 0, 0);
+    
+    for (let i = 0; i < 8; i++) {
+        const currentDate = new Date(baseDate);
+        currentDate.setDate(baseDate.getDate() + i);
+        
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        const dayName = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][currentDate.getDay()];
+        const displayDay = currentDate.getDate();
+        const displayMonth = currentDate.getMonth() + 1;
+        
+        const isToday = i === 0;
+        
+        const dateElement = document.createElement('div');
+        dateElement.className = 'col-4 col-sm-3 col-md-3';
+        dateElement.innerHTML = `
+            <input type="radio" class="btn-check date-radio" name="booking_date" 
+                   id="date_${i}" value="${dateString}" ${isToday ? 'checked' : ''}>
+            <label class="btn btn-outline-secondary date-btn w-100 ${isToday ? 'active' : ''}" 
+                   for="date_${i}">
+                <div class="fw-bold">${dayName}</div>
+                <div class="small">${displayDay}/${displayMonth}</div>
+                ${isToday ? '<div class="very-small text-primary">(Hôm nay)</div>' : ''}
+            </label>
+        `;
+        
+        dateGrid.appendChild(dateElement);
+    }
+    
+    // LẮNG NGHE SỰ KIỆN CHỌN NGÀY
+    document.querySelectorAll('.date-radio').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                currentSelectedDate = this.value;
+                document.getElementById('booking_date').value = currentSelectedDate;
+                loadSlotsForDate(currentSelectedDate);
+                
+                // Update active state
+                document.querySelectorAll('.date-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.nextElementSibling.classList.add('active');
+            }
+        });
+    });
+}
 
-        if (districtSelect) {
-            districtSelect.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    this.loadWards(e.target.value);
-                }
-                this.updateAddress();
-            });
+// LOAD SLOTS THEO NGÀY
+async function loadSlotsForDate(date) {
+    console.log('Loading slots for:', date);
+    
+    const loadingElement = document.getElementById('loading-slots');
+    const timeContainer = document.getElementById('time-slots-container');
+    
+    if (loadingElement) loadingElement.classList.remove('d-none');
+    if (timeContainer) timeContainer.style.opacity = '0.5';
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'get_slots');
+        formData.append('date', date);
+        
+        const response = await fetch('<?php echo url("ajax-booking"); ?>', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON Parse Error:', parseError);
+            throw new Error('Invalid JSON response');
         }
-
-        if (wardSelect) {
-            wardSelect.addEventListener('change', () => this.updateAddress());
+        
+        if (result.success) {
+            updateSlotsDisplay(result.slots, date);
+        } else {
+            console.error('Server error:', result.error);
+            showNotification('Lỗi tải khung giờ: ' + (result.error || 'Không xác định'), 'error');
         }
-
-        if (streetInput) {
-            streetInput.addEventListener('input', () => this.updateAddress());
-        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        showNotification('Lỗi kết nối: ' + error.message, 'error');
+    } finally {
+        if (loadingElement) loadingElement.classList.add('d-none');
+        if (timeContainer) timeContainer.style.opacity = '1';
     }
 }
 
-// QUẢN LÝ FORM ĐẶT LỊCH
-class BookingForm {
-    constructor() {
-        this.deviceCount = 1;
-        this.maxDevices = 8;
-        this.init();
-    }
-
-    init() {
-        new AddressAPI();
-        new ScheduleManager();
-        this.initDeviceManagement();
-        this.initFormValidation();
-    }
-
-    initDeviceManagement() {
-        const addButton = document.getElementById('btn-add-device');
-        if (!addButton) return;
-
-        addButton.addEventListener('click', () => {
-            if (this.deviceCount >= this.maxDevices) {
-                showAlert(`Chỉ được thêm tối đa ${this.maxDevices} thiết bị`);
-                return;
-            }
-            this.deviceCount++;
-            this.addDevice(this.deviceCount);
+// CẬP NHẬT HIỂN THỊ SLOTS
+function updateSlotsDisplay(slots, date) {
+    const timeContainer = document.getElementById('time-slots-container');
+    const infoDisplay = document.getElementById('slot-info-display');
+    
+    if (!timeContainer) return;
+    
+    timeContainer.innerHTML = '';
+    
+    slots.forEach(slot => {
+        const slotElement = document.createElement('div');
+        slotElement.className = 'col-md-6 col-lg-4';
+        slotElement.innerHTML = `
+            <div class="time-slot-group text-center">
+                <input type="radio" class="btn-check time-slot-radio" name="maKhungGio" 
+                       id="time_${slot.maKhungGio}" value="${slot.maKhungGio}" 
+                       ${!slot.kha_dung_bool ? 'disabled' : ''}>
+                <label class="btn btn-outline-primary w-100 py-3 time-slot-label ${!slot.kha_dung_bool ? 'time-slot-disabled' : ''}" 
+                       for="time_${slot.maKhungGio}">
+                    <div class="fw-bold">${slot.pham_vi}</div>
+                    <div class="small text-muted">${slot.gioBatDau} - ${slot.gioKetThuc}</div>
+                    <div class="slot-info mt-1">
+                        ${!slot.kha_dung_bool ? 
+                            `<small class="text-danger">${slot.ly_do}</small>` : 
+                            `<small class="text-success">Còn ${slot.kha_dung}/${slot.toi_da} slot</small>`
+                        }
+                    </div>
+                </label>
+            </div>
+        `;
+        timeContainer.appendChild(slotElement);
+    });
+    
+    // CẬP NHẬT THÔNG TIN PHÂN BỔ
+    if (infoDisplay && slots.length > 0) {
+        const totalTechs = slots[0].tong_ktv || 0;
+        const dateObj = new Date(date);
+        const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+        
+        let html = `<h6 class="text-primary mb-2">Thông tin phân bổ KTV ngày ${formattedDate}</h6>
+                   <div class="row">
+                       <div class="col-12 mb-2">
+                           <strong>Tổng KTV làm việc:</strong> ${totalTechs}
+                       </div>`;
+        
+        slots.forEach(slot => {
+            const statusText = !slot.kha_dung_bool ? 
+                `<span class="text-danger">(${slot.ly_do})</span>` : 
+                `<span class="text-success">(Có thể đặt)</span>`;
+            
+            html += `<div class="col-md-6 col-lg-4 mb-2">
+                        <strong>${slot.pham_vi} ${statusText}</strong><br>
+                        Phân bổ: ${slot.slot_phan_bo} KTV<br>
+                        Đã đặt: ${slot.da_dat}/${slot.toi_da}<br>
+                        Còn lại: ${slot.kha_dung}
+                     </div>`;
         });
+        
+        html += '</div>';
+        infoDisplay.innerHTML = html;
     }
+}
 
-    addDevice(index) {
-        const additionalDevices = document.getElementById('additional-devices');
-        if (!additionalDevices) return;
+// QUẢN LÝ THIẾT BỊ
+function initDeviceManagement() {
+    const addButton = document.getElementById('btn-add-device');
+    if (!addButton) return;
 
-        const newDevice = document.createElement('div');
-        newDevice.className = 'device-item mb-3 p-3 border border-gray rounded';
-        newDevice.setAttribute('data-device-index', index);
+    addButton.addEventListener('click', function() {
+        if (deviceCount >= maxDevices) {
+            showNotification(`Chỉ được thêm tối đa ${maxDevices} thiết bị`, 'error');
+            return;
+        }
+        deviceCount++;
+        addDevice(deviceCount);
+    });
+}
 
-        const deviceOptions = `<?php
+function addDevice(index) {
+    const additionalDevices = document.getElementById('additional-devices');
+    if (!additionalDevices) return;
+
+    const newDevice = document.createElement('div');
+    newDevice.className = 'device-item mb-3 p-3 border border-gray rounded';
+    newDevice.setAttribute('data-device-index', index);
+
+    const deviceOptions = `<?php
         $options = '';
         foreach ($devices as $device) {
             $options .= '<option value=\"' . $device['maThietBi'] . '\">' . htmlspecialchars($device['tenThietBi']) . '</option>';
         }
         echo $options;
-        ?>`;
+    ?>`;
 
-        newDevice.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0 text-primary">Thiết bị ${index}</h6>
-                <button type="button" class="btn btn-danger btn-sm btn-remove-device">
-                    <i class="fas fa-times me-1"></i>Xóa
-                </button>
+    newDevice.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0 text-primary">Thiết bị ${index}</h6>
+            <button type="button" class="btn btn-danger btn-sm btn-remove-device">
+                <i class="fas fa-times me-1"></i>Xóa
+            </button>
+        </div>
+        <div class="row g-2">
+            <div class="col-12">
+                <label class="form-label">Loại thiết bị *</label>
+                <select class="form-select input-gray" name="device_types[]" required>
+                    <option value="">Chọn loại thiết bị</option>
+                    ${deviceOptions}
+                </select>
             </div>
-            <div class="row g-2">
-                <div class="col-12">
-                    <label class="form-label">Loại thiết bị *</label>
-                    <select class="form-select input-gray" name="device_types[]" required>
-                        <option value="">Chọn loại thiết bị</option>
-                        ${deviceOptions}
-                    </select>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Thông tin thiết bị</label>
-                    <input type="text" class="form-control input-gray" name="device_models[]" 
-                        placeholder="VD: Dell Inspiron 15, iPhone 13...">
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Mô tả tình trạng *</label>
-                    <textarea class="form-control input-gray" name="device_problems[]" required rows="2"
-                            placeholder="Mô tả chi tiết tình trạng hư hỏng..."></textarea>
-                </div>
+            <div class="col-12">
+                <label class="form-label">Thông tin thiết bị</label>
+                <input type="text" class="form-control input-gray" name="device_models[]" 
+                    placeholder="VD: Dell Inspiron 15, iPhone 13...">
             </div>
-        `;
+            <div class="col-12">
+                <label class="form-label">Mô tả tình trạng *</label>
+                <textarea class="form-control input-gray" name="device_problems[]" required rows="2"
+                        placeholder="Mô tả chi tiết tình trạng hư hỏng..."></textarea>
+            </div>
+        </div>
+    `;
 
-        newDevice.querySelector('.btn-remove-device').addEventListener('click', () => {
-            newDevice.remove();
-            this.deviceCount--;
-            this.updateDeviceNumbers();
-        });
+    newDevice.querySelector('.btn-remove-device').addEventListener('click', function() {
+        newDevice.remove();
+        deviceCount--;
+        updateDeviceNumbers();
+    });
 
-        additionalDevices.appendChild(newDevice);
-    }
+    additionalDevices.appendChild(newDevice);
+}
 
-    updateDeviceNumbers() {
-        const deviceItems = document.querySelectorAll('.device-item');
-        deviceItems.forEach((item, index) => {
-            const title = item.querySelector('h6');
-            if (title) {
-                title.textContent = `Thiết bị ${index + 1}`;
-            }
-        });
-    }
-
-    initFormValidation() {
-        const form = document.getElementById('serviceBookingForm');
-        if (!form) return;
-
-        const phoneInput = document.getElementById('customer_phone');
-        if (phoneInput) {
-            phoneInput.addEventListener('input', function (e) {
-                this.value = this.value.replace(/[^0-9+]/g, '').slice(0, 12);
-            });
+function updateDeviceNumbers() {
+    const deviceItems = document.querySelectorAll('.device-item');
+    deviceItems.forEach((item, index) => {
+        const title = item.querySelector('h6');
+        if (title) {
+            title.textContent = `Thiết bị ${index + 1}`;
         }
+    });
+}
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+// VALIDATION FORM
+function initFormValidation() {
+    const form = document.getElementById('serviceBookingForm');
+    if (!form) return;
 
-            if (this.validateForm()) {
-                this.showBookingConfirmation();
-            }
+    const phoneInput = document.getElementById('customer_phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9+]/g, '').slice(0, 12);
         });
     }
 
-    validateForm() {
-        const customerName = document.getElementById('customer_name')?.value.trim();
-        const customerPhone = document.getElementById('customer_phone')?.value.trim();
-        const customerAddress = document.getElementById('customer_address')?.value.trim();
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-        if (!customerName || !customerPhone || !customerAddress) {
-            showAlert('Vui lòng điền đầy đủ thông tin khách hàng!');
-            return false;
+        if (validateForm()) {
+            showBookingConfirmation();
         }
+    });
+}
 
-        const phoneRegex = /(0[3|5|7|8|9])+([0-9]{8})\b/;
-        if (!phoneRegex.test(customerPhone)) {
-            showAlert('Vui lòng nhập số điện thoại hợp lệ!');
-            return false;
-        }
+function validateForm() {
+    const customerName = document.getElementById('customer_name')?.value.trim();
+    const customerPhone = document.getElementById('customer_phone')?.value.trim();
+    const customerAddress = document.getElementById('customer_address')?.value.trim();
+    const district = document.getElementById('district');
+    const ward = document.getElementById('ward');
 
-        // Luôn yêu cầu chọn ngày và giờ
-        const bookingDate = document.querySelector('input[name="booking_date"]:checked');
-        const bookingTime = document.querySelector('input[name="booking_time"]:checked');
-
-        if (!bookingDate || !bookingTime) {
-            showAlert('Vui lòng chọn ngày và khung giờ đặt lịch!');
-            return false;
-        }
-
-        const deviceTypes = document.querySelectorAll('select[name="device_types[]"]');
-        let hasDevice = false;
-        deviceTypes.forEach(select => {
-            if (select.value) hasDevice = true;
-        });
-
-        if (!hasDevice) {
-            showAlert('Vui lòng chọn ít nhất một thiết bị!');
-            return false;
-        }
-
-        return true;
+    if (!customerName || !customerPhone || !customerAddress) {
+        showNotification('Vui lòng điền đầy đủ thông tin khách hàng!', 'error');
+        return false;
     }
 
-    showBookingConfirmation() {
-        showConfirm(
+    const phoneRegex = /(0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (!phoneRegex.test(customerPhone)) {
+        showNotification('Vui lòng nhập số điện thoại hợp lệ!', 'error');
+        return false;
+    }
+
+    // KIỂM TRA QUẬN/HUYỆN
+    if (!district.value) {
+        showNotification('Vui lòng chọn quận/huyện!', 'error');
+        return false;
+    }
+
+    // KIỂM TRA QUẬN CÓ ĐƯỢC PHÉP KHÔNG
+    if (!allowedDistricts.includes(district.value)) {
+        showNotification('Hiện tại chúng tôi chỉ hỗ trợ các quận: 1, 3, 4, 5, 10, Bình Thạnh!', 'error');
+        return false;
+    }
+
+    // KIỂM TRA PHƯỜNG/XÃ
+    if (ward && !ward.disabled && !ward.value) {
+        showNotification('Vui lòng chọn phường/xã!', 'error');
+        return false;
+    }
+
+    // Kiểm tra ngày và giờ
+    const bookingDate = document.querySelector('input[name="booking_date"]:checked');
+    const bookingTime = document.querySelector('input[name="maKhungGio"]:checked');
+
+    if (!bookingDate) {
+        showNotification('Vui lòng chọn ngày đặt lịch!', 'error');
+        return false;
+    }
+
+    if (!bookingTime) {
+        showNotification('Vui lòng chọn khung giờ đặt lịch!', 'error');
+        return false;
+    }
+
+    // Kiểm tra thiết bị
+    const deviceTypes = document.querySelectorAll('select[name="device_types[]"]');
+    let hasDevice = false;
+    deviceTypes.forEach(select => {
+        if (select.value) hasDevice = true;
+    });
+
+    if (!hasDevice) {
+        showNotification('Vui lòng chọn ít nhất một thiết bị!', 'error');
+        return false;
+    }
+
+    // Kiểm tra mô tả tình trạng
+    const deviceProblems = document.querySelectorAll('textarea[name="device_problems[]"]');
+    for (let problem of deviceProblems) {
+        if (problem.value.trim() === '') {
+            showNotification('Vui lòng nhập mô tả tình trạng cho tất cả thiết bị!', 'error');
+            problem.focus();
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function showBookingConfirmation() {
+    showConfirm(
             'Bạn xác nhận muốn đặt lịch sửa chữa?',
             'Xác nhận đặt lịch',
             () => {
@@ -845,13 +901,25 @@ class BookingForm {
                 console.log('Đã hủy đặt lịch');
             }
         );
-    }
+    
 }
 
-// Khởi tạo form khi trang load xong
-document.addEventListener('DOMContentLoaded', function () {
-    new BookingForm();
-});
+// HIỂN THỊ THÔNG BÁO
+function showNotification(message, type = 'error') {
+    const notificationEvent = new CustomEvent('showNotification', {
+        detail: {
+            message: message,
+            type: type
+        }
+    });
+    window.dispatchEvent(notificationEvent);
+    
+    setTimeout(() => {
+        if (typeof window.showAlert === 'undefined') {
+            alert(message);
+        }
+    }, 100);
+}
 </script>
 
 <?php include VIEWS_PATH . '/footer.php'; ?>
