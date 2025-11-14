@@ -1,121 +1,100 @@
 <?php
-// ajax-booking.php - CLEAN VERSION (NO SAMPLE DATA)
+// ajax-booking.php - SIÊU AN TOÀN, KHÔNG BAO GIỜ TRẢ HTML
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// XÓA BUFFER HOÀN TOÀN
+// XÓA TOÀN BỘ OUTPUT BUFFER
 while (ob_get_level()) {
     ob_end_clean();
 }
 
 header('Content-Type: application/json; charset=utf-8');
 
-error_log("=== AJAX-BOOKING CLEAN START ===");
+// BẮT TẤT CẢ LỖI → CHUYỂN THÀNH JSON
+set_error_handler(function ($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+set_exception_handler(function ($exception) {
+    error_log("AJAX EXCEPTION: " . $exception->getMessage() . " in " . $exception->getFile() . ":" . $exception->getLine());
+    echo json_encode([
+        'success' => false,
+        'error' => 'Lỗi hệ thống: ' . $exception->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+});
 
 $action = $_POST['action'] ?? ($_GET['action'] ?? '');
 
-if ($action === 'get_slots') {
-    $date = $_POST['date'] ?? ($_GET['date'] ?? date('Y-m-d'));
-    
-    error_log("📅 Date requested: " . $date);
-    
-    try {
-        // KIỂM TRA FILE TỒN TẠI
-        $configPath = __DIR__ . '/../config.php';
-        $dichvuPath = __DIR__ . '/../function/dichvu.php';
-        
-        if (!file_exists($configPath) || !file_exists($dichvuPath)) {
-            throw new Exception("File config hoặc dichvu không tồn tại");
-        }
-        
-        require_once $configPath;
-        require_once $dichvuPath;
-        
-        error_log("✅ Files included successfully");
-        
-        $dichVuService = new DichVuService($db);
-        $gioHienTai = (int) date('H');
-        
-        // LẤY DỮ LIỆU THỰC TẾ TỪ DATABASE
-        $slotsData = $dichVuService->tinhSlotKhaDung($date, $gioHienTai);
-        error_log("🎯 Slot calculation successful, data count: " . count($slotsData));
-        
-        $danhSachKhungGio = $dichVuService->layDanhSachKhungGio();
-        error_log("📊 Number of timeframes: " . count($danhSachKhungGio));
-        
-        $formattedSlots = [];
-        
-        foreach ($danhSachKhungGio as $khungGio) {
-            $maKhungGio = $khungGio['maKhungGio'];
-            $slotInfo = $slotsData[$maKhungGio] ?? null;
-            
-            if ($slotInfo && is_array($slotInfo)) {
-                $formattedSlots[] = [
-                    'maKhungGio' => $maKhungGio,
-                    'pham_vi' => $slotInfo['pham_vi'] ?? $khungGio['khoangGio'],
-                    'toi_da' => $slotInfo['toi_da'] ?? 0,
-                    'da_dat' => $slotInfo['da_dat'] ?? 0,
-                    'kha_dung' => $slotInfo['kha_dung'] ?? 0,
-                    'tong_ktv' => $slotInfo['tong_ktv'] ?? 0,
-                    'slot_phan_bo' => $slotInfo['ktv_phan_bo'] ?? 0,
-                    'gioBatDau' => $slotInfo['gio_bat_dau'] ?? $khungGio['gioBatDau'],
-                    'gioKetThuc' => $slotInfo['gio_ket_thuc'] ?? $khungGio['gioKetThuc'],
-                    'ly_do' => $slotInfo['ly_do'] ?? 'Không xác định',
-                    'kha_dung_bool' => ($slotInfo['kha_dung'] ?? 0) > 0 && !($slotInfo['vo_hieu_hoa'] ?? true)
-                ];
-                
-                error_log("⏰ Khung {$khungGio['khoangGio']}: {$slotInfo['kha_dung']} slot khả dụng");
-            } else {
-                // TRẢ VỀ DỮ LIỆU RỖNG NẾU KHÔNG CÓ THÔNG TIN
-                $formattedSlots[] = [
-                    'maKhungGio' => $maKhungGio,
-                    'pham_vi' => $khungGio['khoangGio'],
-                    'toi_da' => 0,
-                    'da_dat' => 0,
-                    'kha_dung' => 0,
-                    'tong_ktv' => 0,
-                    'slot_phan_bo' => 0,
-                    'gioBatDau' => $khungGio['gioBatDau'],
-                    'gioKetThuc' => $khungGio['gioKetThuc'],
-                    'ly_do' => 'Không có dữ liệu',
-                    'kha_dung_bool' => false
-                ];
-                
-                error_log("⚠️ Khung {$khungGio['khoangGio']}: Không có dữ liệu slot");
-            }
-        }
-        
-        $response = [
-            'success' => true,
-            'date' => $date,
-            'slots' => $formattedSlots,
-            'debug' => [
-                'total_timeframes' => count($danhSachKhungGio),
-                'total_slots_data' => count($slotsData),
-                'current_hour' => $gioHienTai
-            ]
-        ];
-        
-        echo json_encode($response, JSON_UNESCAPED_UNICODE);
-        
-    } catch (Exception $e) {
-        error_log("❌ Error: " . $e->getMessage());
-        
-        // ❌ KHÔNG CÓ DỮ LIỆU MẪU - CHỈ TRẢ VỀ LỖI
-        echo json_encode([
-            'success' => false,
-            'error' => 'Lỗi hệ thống: ' . $e->getMessage(),
-            'slots' => []
-        ]);
-    }
-} else {
-    echo json_encode([
-        'success' => false,
-        'error' => 'Action không hợp lệ: ' . $action
-    ]);
+if ($action !== 'get_slots') {
+    echo json_encode(['success' => false, 'error' => 'Action không hợp lệ']);
+    exit;
 }
 
-error_log("=== AJAX-BOOKING CLEAN END ===");
+$date = $_POST['date'] ?? ($_GET['date'] ?? date('Y-m-d'));
+$gioHienTai = isset($_POST['current_hour']) ? (int)$_POST['current_hour'] : (int)date('H');
+
+error_log("AJAX: date=$date, gioHienTai=$gioHienTai");
+
+try {
+    // ĐƯỜNG DẪN TUYỆT ĐỐI, TRÁNH LỖI
+    $root = dirname(__DIR__); // lên 1 cấp từ ajax/
+    $configPath = $root . '/config.php';
+    $dichvuPath = $root . '/function/dichvu.php';
+
+    if (!file_exists($configPath)) {
+        throw new Exception("Không tìm thấy config.php tại: $configPath");
+    }
+    if (!file_exists($dichvuPath)) {
+        throw new Exception("Không tìm thấy dichvu.php tại: $dichvuPath");
+    }
+
+    require_once $configPath;
+    require_once $dichvuPath;
+
+    // KIỂM TRA $db CÓ TỒN TẠI
+    if (!isset($db) || !($db instanceof PDO)) {
+        throw new Exception("Biến \$db không tồn tại hoặc không phải PDO");
+    }
+
+    $dichVuService = new DichVuService($db);
+    $slotsData = $dichVuService->tinhSlotKhaDung($date, $gioHienTai);
+    $danhSachKhungGio = $dichVuService->layDanhSachKhungGio();
+
+    $formattedSlots = [];
+    foreach ($danhSachKhungGio as $khungGio) {
+        $ma = $khungGio['maKhungGio'];
+        $info = $slotsData[$ma] ?? null;
+
+        $formattedSlots[] = [
+            'maKhungGio' => $ma,
+            'pham_vi' => $khungGio['khoangGio'],
+            'toi_da' => $info['toi_da'] ?? 0,
+            'da_dat' => $info['da_dat'] ?? 0,
+            'kha_dung' => $info['kha_dung'] ?? 0,
+            'tong_ktv_thuc_te' => $info['tong_ktv_thuc_te'] ?? 0,
+            'slot_tu_don_hoan_thanh' => $info['slot_tu_don_hoan_thanh'] ?? 0,
+            'gioBatDau' => $khungGio['gioBatDau'],
+            'gioKetThuc' => $khungGio['gioChan'],
+            'ly_do' => $info['ly_do'] ?? 'Không xác định',
+            'vo_hieu_hoa' => $info['vo_hieu_hoa'] ?? true,
+            'da_qua_gio' => $info['da_qua_gio'] ?? false,
+            'kha_dung_bool' => ($info['kha_dung'] ?? 0) > 0 && !($info['vo_hieu_hoa'] ?? true)
+        ];
+    }
+
+    echo json_encode([
+        'success' => true,
+        'date' => $date,
+        'slots' => $formattedSlots,
+        'debug' => ['gioHienTai' => $gioHienTai]
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Throwable $e) {
+    error_log("AJAX ERROR: " . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+}
+
 exit;

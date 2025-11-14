@@ -9,10 +9,10 @@ $pageTitle = "Test Slot Nâng Cao - TechCare";
 include VIEWS_PATH . '/header.php';
 
 // Include class TestSlotService
-require_once __DIR__ . '/../function/dichvu.php';
+require_once __DIR__ . '/../function/test.php';
 
 // Khởi tạo service
-$testService  = new DichVuService($db);
+$testService  = new TestSlotService($db);
 
 
 // Xử lý form

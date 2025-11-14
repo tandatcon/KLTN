@@ -7,24 +7,39 @@ if (!defined('BASE_URL')) {
 
 $pageTitle = "Đơn Dịch Vụ Của Tôi - TechCare";
 
+// Khởi tạo service mới
+require_once __DIR__ . '/../function/donhang.php';
+$donHangService = new DonHangService($db);
 
-// Khởi tạo controller
-require_once __DIR__ . '/../controllers/OrderController.php';
-$orderController = new OrderController($db);
-$data = $orderController->showOrders();
-$technicianInfo = $orderController->getTechnicianInfo($order['maKTV']);
+// Lấy dữ liệu
+$maKH = $_SESSION['user_id'] ?? null;
+if (!$maKH) {
+    header('Location: ' . url('login'));
+    exit();
+}
 
-// Extract data
+$data = $donHangService->getOrdersData($maKH);
 $userInfo = $data['userInfo'];
 $orders = $data['orders'];
 $deviceNames = $data['deviceNames'];
-//Huy don
+
+// Xử lý hủy đơn
 if (isset($_GET['huydon'])) {
-    $huy = $orderController->huyDonHang($_GET['huydon']);
-    // Sau khi hủy, reload trang để cập nhật trạng thái
+    try {
+        $success = $donHangService->cancelOrder($_GET['huydon'], $maKH);
+        if ($success) {
+            $_SESSION['success'] = "Đã hủy đơn hàng thành công!";
+        } else {
+            $_SESSION['error'] = "Không thể hủy đơn hàng!";
+        }
+    } catch (Exception $e) {
+        $_SESSION['error'] = $e->getMessage();
+    }
+    
     header('Location: ' . url('my_orders'));
     exit();
 }
+
 include VIEWS_PATH . '/header.php';
 ?>
 

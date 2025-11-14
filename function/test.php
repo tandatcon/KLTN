@@ -177,6 +177,27 @@ public function layDonHoanThanhTaiKhungGioDaQua($ngay, $gioHienTai)
         }
     }
 
+    private function tinhKTVConLai($tongKTV, $ngay, $gioHienTai, $danhSachKhungGio, $donConLai)
+{
+    $ktvDaDung = 0;
+
+    foreach ($danhSachKhungGio as $khung) {
+        $gioChan = (int) $khung['gioChan'];
+        $maKhungGio = $khung['maKhungGio'];
+
+        // Chỉ tính khung ĐÃ QUA
+        if ($gioHienTai >= $gioChan) {
+            $soDon = $donConLai['chi_tiet'][$maKhungGio]['soDon'] ?? 0;
+            $ktvDaDung += $soDon; // Mỗi đơn = 1 KTV đã được dùng
+        }
+    }
+
+    $ktvConLai = max(0, $tongKTV - $ktvDaDung);
+
+    error_log("Tổng KTV: $tongKTV | KTV đã dùng ở khung đã qua: $ktvDaDung | KTV còn lại: $ktvConLai");
+
+    return $ktvConLai;
+}
     /**
      * Tính slot khả dụng - SỬA LẠI TOÀN BỘ LOGIC
      */
@@ -242,120 +263,65 @@ public function layDonHoanThanhTaiKhungGioDaQua($ngay, $gioHienTai)
      * Tính slot khả dụng - ĐÃ SỬA LỖI OUTPUT HTML
      */
     public function tinhSlotKhaDung($ngay, $gioHienTai = null)
-    {
-        if ($gioHienTai === null) {
-            $gioHienTai = (int) date('H');
-        }
-
-        error_log("=== TÍNH SLOT CHO NGÀY: $ngay - GIỜ HIỆN TẠI: $gioHienTai ===");
-        
-        // 1. Lấy tổng KTV làm việc
-        $tongKTV = $this->layTongKTVLamViec($ngay);
-        
-        // 2. Lấy số đơn hoàn thành tại khung giờ đã qua
-        $donHoanThanh = $this->layDonHoanThanhTaiKhungGioDaQua($ngay, $gioHienTai);
-        
-        // 3. Lấy số đơn còn lại tại khung giờ
-        $donConLai = $this->layDonConLaiTaiKhungGio($ngay, $gioHienTai);
-        
-        // 4. Lấy danh sách khung giờ
-        $danhSachKhungGio = $this->layDanhSachKhungGio();
-        $soKhungGio = count($danhSachKhungGio);
-
-        error_log("Tổng KTV: $tongKTV / Số khung giờ: $soKhungGio");
-        error_log("Tổng đơn hoàn thành: {$donHoanThanh['tong']}");
-        error_log("Tổng đơn còn lại: {$donConLai['tong']}");
-        
-        // 🔥 SỬA: THAY VÌ ECHO, SỬ DỤNG error_log ĐỂ DEBUG
-        error_log("=== DEBUG DON_CON_LAI ===");
-        error_log(print_r($donConLai, true));
-        error_log("=== DEBUG DANH_SACH_KHUNG_GIO ===");
-        error_log(print_r($danhSachKhungGio, true));
-
-        // 5. Phân bổ KTV cho các khung giờ (PHÂN BỔ ĐỀU)
-        $phanBoKTV = $this->phanBoKTV($tongKTV, $soKhungGio);
-
-        // 6. Tính toán KTV dư từ các khung giờ đã qua
-        $ktvDuTheoKhung = $this->tinhKTVDuTheoKhung($ngay, $gioHienTai, $danhSachKhungGio, $phanBoKTV, $donConLai);
-        
-        // 7. Phân bổ slot từ đơn hoàn thành cho các khung giờ còn lại
-        $phanBoSlotTuDonHoanThanh = $this->phanBoSlotTuDonHoanThanh(
-            $donHoanThanh['tong'], 
-            $danhSachKhungGio, 
-            $gioHienTai
-        );
-
-        // 8. Phân bổ thêm KTV dư cho các khung giờ còn lại
-        $phanBoKTVDu = $this->phanBoKTVDuThongMinh($ktvDuTheoKhung, $danhSachKhungGio, $gioHienTai);
-
-        $ketQua = [];
-
-        foreach ($danhSachKhungGio as $index => $khungGio) {
-            $maKhungGio = $khungGio['maKhungGio'];
-            $gioBatDau = (int) $khungGio['gioBatDau'];
-            $gioChan = (int) $khungGio['gioChan'];
-
-            // Kiểm tra đã qua giờ chưa
-            $daQuaGio = ($gioHienTai >= $gioChan);
-            
-            // Số KTV được phân bổ ban đầu cho khung giờ này
-            $soKTVPhanBo = $phanBoKTV[$index] ?? 0;
-            
-            // Số KTV dư được phân bổ thêm
-            $soKTVDuPhanBo = $phanBoKTVDu[$maKhungGio] ?? 0;
-            
-            // Tổng KTV thực tế = KTV phân bổ ban đầu + KTV dư
-            $tongKTVThucTe = $soKTVPhanBo + $soKTVDuPhanBo;
-
-            // Số slot từ đơn hoàn thành được phân bổ cho khung giờ này
-            $slotTuDonHoanThanh = $phanBoSlotTuDonHoanThanh[$maKhungGio] ?? 0;
-
-            // Tổng slot = KTV thực tế + slot từ đơn hoàn thành
-            $slotToiDa = $tongKTVThucTe + $slotTuDonHoanThanh;
-
-            // Lấy số đơn đã đặt tại khung giờ này
-            $soDonDaDat = $donConLai['chi_tiet'][$maKhungGio]['soDon'] ?? 0;
-            
-            // Tính slot khả dụng
-            $khaDung = max(0, $slotToiDa - $soDonDaDat);
-            
-            // Vô hiệu hóa nếu đã qua giờ hoặc không có slot khả dụng
-            $voHieuHoa = $daQuaGio || $khaDung <= 0;
-
-            // Xác định lý do
-            if ($daQuaGio) {
-                $lyDo = 'Đã qua giờ';
-            } elseif ($tongKTVThucTe === 0 && $slotTuDonHoanThanh === 0) {
-                $lyDo = 'Không có KTV và slot';
-            } elseif ($khaDung <= 0) {
-                $lyDo = 'Đã hết slot';
-            } else {
-                $lyDo = 'Có thể đặt';
-            }
-
-            $ketQua[$maKhungGio] = [
-                'pham_vi' => $khungGio['khoangGio'],
-                'toi_da' => $slotToiDa,
-                'da_dat' => $soDonDaDat,
-                'kha_dung' => $khaDung,
-                'tong_ktv' => $tongKTV,
-                'ktv_phan_bo' => $soKTVPhanBo,
-                'ktv_du_phan_bo' => $soKTVDuPhanBo,
-                'tong_ktv_thuc_te' => $tongKTVThucTe,
-                'slot_tu_don_hoan_thanh' => $slotTuDonHoanThanh,
-                'tong_don_hoan_thanh' => $donHoanThanh['tong'],
-                'vo_hieu_hoa' => $voHieuHoa,
-                'da_qua_gio' => $daQuaGio,
-                'gio_bat_dau' => $gioBatDau,
-                'gio_ket_thuc' => $gioChan,
-                'ly_do' => $lyDo
-            ];
-
-            error_log("Khung {$khungGio['khoangGio']}: Qua giờ: " . ($daQuaGio ? 'YES' : 'NO') . ", KTV phân bổ: $soKTVPhanBo, KTV dư: $soKTVDuPhanBo, Slot từ đơn HT: $slotTuDonHoanThanh, Tổng slot: $slotToiDa, Đã đặt: $soDonDaDat, Khả dụng: $khaDung");
-        }
-
-        return $ketQua;
+{
+    if ($gioHienTai === null) {
+        $gioHienTai = (int) date('H');
     }
+
+    //$tongKTV = $this->layTongKTVLamViec($ngay);
+    $tongKTV = 6;
+    $donHoanThanh = $this->layDonHoanThanhTaiKhungGioDaQua($ngay, $gioHienTai);
+    $donConLai = $this->layDonConLaiTaiKhungGio($ngay, $gioHienTai);
+    $danhSachKhungGio = $this->layDanhSachKhungGio();
+
+    // BƯỚC MỚI: TÍNH KTV CÒN LẠI SAU KHI TRỪ KHUNG ĐÃ QUA
+    $ktvConLai = $this->tinhKTVConLai($tongKTV, $ngay, $gioHienTai, $danhSachKhungGio, $donConLai);
+
+    // PHÂN BỔ CHỈ CHO KHUNG CHƯA QUA, DÙNG KTV CÒN LẠI
+    $phanBoKTV = $this->phanBoKTV($ktvConLai, $danhSachKhungGio, $gioHienTai);
+
+    // Tính KTV dư từ khung đã qua (vẫn cần để tận dụng nếu có dư)
+    $ktvDuTheoKhung = $this->tinhKTVDuTheoKhung($ngay, $gioHienTai, $danhSachKhungGio, $phanBoKTV, $donConLai);
+    $phanBoKTVDu = $this->phanBoKTVDuThongMinh($ktvDuTheoKhung, $danhSachKhungGio, $gioHienTai);
+
+    // Phân bổ slot từ đơn hoàn thành
+    $phanBoSlotTuDonHoanThanh = $this->phanBoSlotTuDonHoanThanh(
+        $donHoanThanh['tong'],
+        $danhSachKhungGio,
+        $gioHienTai,
+        $phanBoKTV  // Truyền thêm để biết khung nào còn trống
+    );
+    $ketQua = [];
+
+    foreach ($danhSachKhungGio as $khungGio) {
+        $maKhungGio = $khungGio['maKhungGio'];
+        $gioChan = (int) $khungGio['gioChan'];
+        $daQuaGio = ($gioHienTai >= $gioChan);
+
+        $soKTVPhanBo = $phanBoKTV[$maKhungGio] ?? 0;
+        $soKTVDuPhanBo = $phanBoKTVDu[$maKhungGio] ?? 0;
+        $tongKTVThucTe = $soKTVPhanBo + $soKTVDuPhanBo;
+
+        $slotTuDonHoanThanh = $phanBoSlotTuDonHoanThanh[$maKhungGio] ?? 0;
+        $slotToiDa = $tongKTVThucTe + $slotTuDonHoanThanh;
+        $soDonDaDat = $donConLai['chi_tiet'][$maKhungGio]['soDon'] ?? 0;
+        $khaDung = max(0, $slotToiDa - $soDonDaDat);
+
+        $ketQua[$maKhungGio] = [
+            'pham_vi' => $khungGio['khoangGio'],
+            'toi_da' => $slotToiDa,
+            'da_dat' => $soDonDaDat,
+            'kha_dung' => $khaDung,
+            'tong_ktv_thuc_te' => $tongKTVThucTe,
+            'slot_tu_don_hoan_thanh' => $slotTuDonHoanThanh,
+            'vo_hieu_hoa' => $daQuaGio || $khaDung <= 0,
+            'da_qua_gio' => $daQuaGio,
+            'ly_do' => $daQuaGio ? 'Đã qua giờ' : ($khaDung <= 0 ? 'Hết slot' : 'Có thể đặt')
+        ];
+    }
+
+    return $ketQua;
+}
 
     /**
      * Tính số KTV dư từ các khung giờ đã qua - SỬA LẠI: DÙNG ĐƠN CÒN LẠI
@@ -445,112 +411,112 @@ public function layDonHoanThanhTaiKhungGioDaQua($ngay, $gioHienTai)
     /**
      * Phân bổ KTV cho các khung giờ - PHÂN BỔ ĐỀU
      */
-    private function phanBoKTV($tongKTV, $soKhungGio)
-    {
-        $phanBo = array_fill(0, $soKhungGio, 0);
-        
-        error_log("Phân bổ $tongKTV KTV cho $soKhungGio khung giờ");
+    /**
+ * PHÂN BỔ KTV CHỈ CHO CÁC KHUNG GIỜ CHƯA QUA
+ */
+private function phanBoKTV($ktvConLai, $danhSachKhungGio, $gioHienTai)
+{
+    $phanBo = [];
+    $khungChuaQua = [];
 
-        if ($tongKTV <= 0) {
-            error_log("Không có KTV nào để phân bổ");
-            return $phanBo;
+    // Lấy danh sách khung chưa qua
+    foreach ($danhSachKhungGio as $khung) {
+        if ($gioHienTai < $khung['gioChan']) {
+            $khungChuaQua[] = $khung['maKhungGio'];
+            $phanBo[$khung['maKhungGio']] = 0;
         }
-
-        // Nếu số KTV <= số khung giờ: mỗi khung giờ 1 KTV theo thứ tự
-        if ($tongKTV <= $soKhungGio) {
-            for ($i = 0; $i < $tongKTV; $i++) {
-                $phanBo[$i] = 1;
-            }
-        } else {
-            // Nếu số KTV > số khung giờ: phân bổ đều
-            // Bước 1: Mỗi khung giờ được ít nhất 1 KTV
-            for ($i = 0; $i < $soKhungGio; $i++) {
-                $phanBo[$i] = 1;
-            }
-            
-            // Bước 2: Phân bổ KTV còn lại đều cho các khung giờ
-            $ktvConLai = $tongKTV - $soKhungGio;
-            $index = 0;
-            
-            while ($ktvConLai > 0) {
-                $phanBo[$index]++;
-                $ktvConLai--;
-                $index = ($index + 1) % $soKhungGio;
-            }
-        }
-
-        error_log("Kết quả phân bổ KTV: " . implode(', ', $phanBo));
-        return $phanBo;
     }
+
+    $soKhung = count($khungChuaQua);
+    if ($soKhung == 0 || $ktvConLai == 0) return $phanBo;
+
+    // PHÂN BỔ ĐỀU: LUÂN PHIÊN TỪ ĐẦU ĐẾN CUỐI
+    for ($i = 0; $i < $ktvConLai; $i++) {
+        $maKhungGio = $khungChuaQua[$i % $soKhung]; // Luân phiên
+        $phanBo[$maKhungGio]++;
+    }
+
+    error_log("Phân bổ KTV đều (luân phiên): " . json_encode($phanBo));
+    return $phanBo;
+}
 
     /**
      * Phân bổ slot từ đơn hoàn thành cho các khung giờ còn lại
      */
-    private function phanBoSlotTuDonHoanThanh($tongDonHoanThanh, $danhSachKhungGio, $gioHienTai)
-    {
-        $phanBo = [];
-        
-        if ($tongDonHoanThanh <= 0) {
-            error_log("Không có đơn hoàn thành để phân bổ");
-            foreach ($danhSachKhungGio as $khungGio) {
-                $phanBo[$khungGio['maKhungGio']] = 0;
-            }
-            return $phanBo;
-        }
+    private function phanBoSlotTuDonHoanThanh($tongDonHoanThanh, $danhSachKhungGio, $gioHienTai, $phanBoKTV)
+{
+    $phanBo = [];
 
-        // Chỉ phân bổ cho các khung giờ chưa qua
-        $khungGioChuaQua = [];
-        foreach ($danhSachKhungGio as $khungGio) {
-            if ($gioHienTai < $khungGio['gioChan']) {
-                $khungGioChuaQua[] = $khungGio;
-            }
-        }
+    // Khởi tạo: 0 cho mọi khung
+    foreach ($danhSachKhungGio as $khung) {
+        $phanBo[$khung['maKhungGio']] = 0;
+    }
 
-        $soKhungGioChuaQua = count($khungGioChuaQua);
-
-        if ($soKhungGioChuaQua <= 0) {
-            error_log("Tất cả khung giờ đã qua, không phân bổ slot từ đơn hoàn thành");
-            foreach ($danhSachKhungGio as $khungGio) {
-                $phanBo[$khungGio['maKhungGio']] = 0;
-            }
-            return $phanBo;
-        }
-
-        error_log("Phân bổ $tongDonHoanThanh slot từ đơn hoàn thành cho $soKhungGioChuaQua khung giờ chưa qua");
-
-        // Phân bổ đều slot từ đơn hoàn thành cho các khung giờ chưa qua
-        $slotConLai = $tongDonHoanThanh;
-        
-        // Tính số slot cơ bản cho mỗi khung giờ
-        $slotCoBan = floor($tongDonHoanThanh / $soKhungGioChuaQua);
-        
-        foreach ($danhSachKhungGio as $khungGio) {
-            $maKhungGio = $khungGio['maKhungGio'];
-            
-            if ($gioHienTai < $khungGio['gioChan']) {
-                // Khung giờ chưa qua: được phân bổ slot cơ bản
-                $phanBo[$maKhungGio] = $slotCoBan;
-                $slotConLai -= $slotCoBan;
-            } else {
-                // Khung giờ đã qua: không được phân bổ
-                $phanBo[$maKhungGio] = 0;
-            }
-        }
-
-        // Phân bổ slot còn lại cho các khung giờ đầu
-        if ($slotConLai > 0) {
-            foreach ($khungGioChuaQua as $khungGio) {
-                if ($slotConLai <= 0) break;
-                
-                $maKhungGio = $khungGio['maKhungGio'];
-                $phanBo[$maKhungGio]++;
-                $slotConLai--;
-            }
-        }
-
-        error_log("Kết quả phân bổ slot từ đơn hoàn thành: " . json_encode($phanBo));
+    if ($tongDonHoanThanh <= 0) {
         return $phanBo;
     }
+
+    // Bước 1: Lấy danh sách khung chưa qua
+    $khungChuaQua = [];
+    foreach ($danhSachKhungGio as $khung) {
+        if ($gioHienTai < $khung['gioChan']) {
+            $khungChuaQua[] = $khung;
+        }
+    }
+
+    if (empty($khungChuaQua)) {
+        return $phanBo;
+    }
+
+    // Bước 2: ƯU TIÊN khung CHƯA CÓ KTV (có slot trống)
+    $khungTrong = [];
+    $khungDaCo = [];
+
+    foreach ($khungChuaQua as $khung) {
+        $ma = $khung['maKhungGio'];
+        $ktvHienTai = $phanBoKTV[$ma] ?? 0;
+        if ($ktvHienTai == 0) {
+            $khungTrong[] = $ma;
+        } else {
+            $khungDaCo[] = $ma;
+        }
+    }
+
+    $slotConLai = $tongDonHoanThanh;
+
+    // Bước 3: Điền vào khung trống trước
+    if (!empty($khungTrong)) {
+        foreach ($khungTrong as $ma) {
+            if ($slotConLai <= 0) break;
+            $phanBo[$ma]++;
+            $slotConLai--;
+        }
+    }
+
+    // Bước 4: Nếu còn dư → mới điền vào khung đã có KTV
+    if ($slotConLai > 0 && !empty($khungDaCo)) {
+        foreach ($khungDaCo as $ma) {
+            if ($slotConLai <= 0) break;
+            $phanBo[$ma]++;
+            $slotConLai--;
+        }
+    }
+
+    // Bước 5: Nếu vẫn còn dư → chia đều cho tất cả khung chưa qua
+    if ($slotConLai > 0) {
+        $i = 0;
+        $soKhung = count($khungChuaQua);
+        while ($slotConLai > 0) {
+            $ma = $khungChuaQua[$i % $soKhung]['maKhungGio'];
+            $phanBo[$ma]++;
+            $slotConLai--;
+            $i++;
+        }
+    }
+
+    error_log("Phân bổ slot HT thông minh: " . json_encode($phanBo));
+    return $phanBo;
+}
 
     /**
      * Debug thông tin

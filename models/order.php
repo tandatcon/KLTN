@@ -558,24 +558,6 @@ class Order
         }
     }
 
-    /**
-     * Lấy lịch sử trạng thái đơn hàng
-     */
-    public function layLichSuTrangThaiDon($maDon)
-    {
-        try {
-            $sql = "SELECT * FROM order_history 
-                WHERE maDon = ? 
-                ORDER BY created_at DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$maDon]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        } catch (Exception $e) {
-            error_log("layLichSuTrangThaiDon Error: " . $e->getMessage());
-            return [];
-        }
-    }
 
 
 

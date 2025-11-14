@@ -104,19 +104,6 @@ if (empty($booking_time)) {
     $errors[] = "Vui lòng chọn khung giờ đặt lịch";
 }
 
-// Kiểm tra slot khả dụng với DichVuService
-if (!empty($booking_date) && !empty($booking_time)) {
-    try {
-        $slotInfo = $dichVuService->kiemTraSlotKhaDung($booking_date, $booking_time);
-        
-        if (!$slotInfo['kha_dung']) {
-            $errors[] = "Khung giờ này không khả dụng: " . $slotInfo['ly_do'];
-        }
-    } catch (Exception $e) {
-        $errors[] = "Lỗi kiểm tra khung giờ: " . $e->getMessage();
-    }
-}
-
 // Nếu có lỗi, quay lại form
 if (!empty($errors)) {
     $_SESSION['error'] = implode("<br>", $errors);
@@ -139,31 +126,32 @@ try {
     
 
     // Gọi phương thức thêm đơn dịch vụ từ DichVuService
-    $maDon = $dichVuService->themDonDichVu(
-        $maKH,
-        $booking_date,
-        $booking_time,
-        $problem_description,
-        $customer_address,
-        $device_types,
-        $device_models,
-        $device_problems,
-        $service_type,
-        $is_immediate_service
-    );
+    // Format danh sách thiết bị
+$danhSachThietBi = [];
+for ($i = 0; $i < count($device_types); $i++) {
+    $danhSachThietBi[] = [
+        'maThietBi' => $device_types[$i],
+        'phienBan' => $device_models[$i],
+        'motaTinhTrang' => $device_problems[$i]
+    ];
+}
+
+// Gọi hàm với thứ tự tham số mới
+$maDon = $dichVuService->themDonDichVu(
+    $maKH,
+    $booking_date,
+    $booking_time,
+    $customer_address, // $noiSuaChua
+    $danhSachThietBi,  // $danhSachThietBi
+    $problem_description // $ghiChu (tham số tùy chọn)
+);
+    
 
     if ($maDon) {
         // Thông báo thành công
         $ngay_hien = date('d/m/Y', strtotime($booking_date));
-        
-        // Lấy thông tin khung giờ để hiển thị
-        $thongTinKhungGio = $dichVuService->layThongTinKhungGio($booking_time);
-        $thoi_gian = $thongTinKhungGio ? $thongTinKhungGio['khoangGio'] : 'Không xác định';
-        
         $_SESSION['success'] = "✅ <strong>Đặt lịch sửa chữa thành công!</strong><br>
                                Mã đơn: <strong>#$maDon</strong><br>
-                               Thời gian: <strong>$ngay_hien - $thoi_gian</strong><br>
-                               Địa chỉ: <strong>$customer_address</strong><br>
                                Nhân viên sẽ liên hệ bạn trong vòng 30 phút để xác nhận lịch hẹn.";
 
         unset($_SESSION['form_data']);

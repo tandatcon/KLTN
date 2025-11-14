@@ -8,49 +8,52 @@ if (!defined('BASE_URL')) {
 $pageTitle = "Chi Tiết Đơn Hàng - TechCare";
 include VIEWS_PATH . '/header.php';
 
-// Khởi tạo controller và models
-require_once __DIR__ . '/../controllers/OrderController.php';
-require_once __DIR__ . '/../models/ServiceProcess.php';
+// Khởi tạo services
+require_once __DIR__ . '/../function/donhang.php';
+require_once __DIR__ . '/../function/quytrinh.php';
 
-$orderController = new OrderController($db);
-$serviceProcessModel = new ServiceProcess($db);
+$donHangService = new DonHangService($db);
+$quyTrinhService = new QuyTrinhService($db);
 
 // Lấy mã đơn từ URL
 $orderId = $_GET['id'] ?? 0;
+$maKH = $_SESSION['user_id'] ?? null;
+
+if (!$maKH) {
+    header('Location: ' . url('login'));
+    exit();
+}
+
+if (!$orderId) {
+    $_SESSION['error'] = "Đơn hàng không tồn tại!";
+    header('Location: ' . url('my_orders'));
+    exit();
+}
 
 // Lấy dữ liệu đơn hàng
-$data = $orderController->showOrderDetail($orderId);
+$order = $donHangService->getOrderDetail($orderId, $maKH);
 
 // Kiểm tra nếu không có dữ liệu
-if (!$data || !isset($data['order'])) {
+if (!$order) {
     $_SESSION['error'] = "Đơn hàng không tồn tại hoặc bạn không có quyền truy cập!";
     header('Location: ' . url('my_orders'));
     exit();
 }
 
-// Extract data
-$order = $data['order'];
-$userInfo = $data['userInfo'];
-$orderHistory = $data['orderHistory'];
-$deviceNames = $data['deviceNames'];
-
 // Lấy thông tin bổ sung
-$repairDetails = $orderController->getDeviceDetails($orderId);
-
-// 👇 LẤY THÔNG TIN KTV TỪ ĐƠN HÀNG
-$technicianInfo = null;
-if (!empty($order['maKTV'])) {
-    $technicianInfo = $orderController->getTechnicianInfo($order['maKTV']);
-}
+$userInfo = $donHangService->getCustomerInfo($maKH);
+$devices = $donHangService->getOrderDevicesDetail($orderId);
+$technicianInfo = $donHangService->getTechnicianInfo($order['maKTV']);
+$orderHistory = $donHangService->getServiceActions($orderId);
 
 // Lấy danh sách công việc sửa chữa cho từng thiết bị
 $deviceRepairJobs = [];
-if (!empty($order['devices'])) {
-    foreach ($order['devices'] as $device) {
-        $maCTDon = $device['maCTDon'] ?? null;
-        if ($maCTDon) {
-            $deviceRepairJobs[$maCTDon] = $serviceProcessModel->getDeviceRepairDetails($orderId, $maCTDon);
-        }
+$deviceDiagnoses = [];
+foreach ($devices as $device) {
+    $maCTDon = $device['maCTDon'] ?? null;
+    if ($maCTDon) {
+        $deviceRepairJobs[$maCTDon] = $donHangService->getDeviceRepairDetails($orderId, $maCTDon);
+        $deviceDiagnoses[$maCTDon] = $donHangService->getDeviceDiagnosis($orderId, $maCTDon);
     }
 }
 
@@ -157,9 +160,7 @@ switch ((int) $order['trangThai']) {
                                     <i class="fas fa-hashtag text-primary mt-1"></i>
                                     <div>
                                         <small class="text-muted d-block">Mã đơn</small>
-                                        <strong class="text-dark">
-                                            #<?php echo !empty($order['maDon']) ? htmlspecialchars($order['maDon']) : 'N/A'; ?>
-                                        </strong>
+                                        <strong class="text-dark">#<?php echo htmlspecialchars($orderId); ?></strong>
                                     </div>
                                 </div>
                             </div>
@@ -167,7 +168,7 @@ switch ((int) $order['trangThai']) {
                                 <div class="d-flex align-items-start gap-3">
                                     <i class="fas fa-calendar text-primary mt-1"></i>
                                     <div>
-                                        <small class="text-muted d-block">Ngày hẹn</small>
+                                        <small class="text-muted d-block">Ngày đặt</small>
                                         <strong class="text-dark">
                                             <?php echo !empty($order['ngayDat']) ? date('d/m/Y', strtotime($order['ngayDat'])) : 'N/A'; ?>
                                         </strong>
@@ -178,16 +179,9 @@ switch ((int) $order['trangThai']) {
                                 <div class="d-flex align-items-start gap-3">
                                     <i class="fas fa-clock text-primary mt-1"></i>
                                     <div>
-                                        <small class="text-muted d-block">Khung giờ hẹn</small>
+                                        <small class="text-muted d-block">Khung giờ</small>
                                         <strong class="text-dark">
-                                            <?php
-                                            $time_slots = [
-                                                '1' => 'Sáng (7:30 - 12:00)',
-                                                '2' => 'Chiều (13:00 - 18:00)',
-                                                '0' => 'Khẩn cấp - Trong ngày'
-                                            ];
-                                            echo !empty($order['gioDat']) ? ($time_slots[$order['gioDat']] ?? $order['gioDat']) : '<span class="fst-italic text-muted">Chưa có thông tin</span>';
-                                            ?>
+                                            <?php echo !empty($order['gioBatDau']) ? $order['gioBatDau'] . ' - ' . $order['gioKetThuc'] : 'N/A'; ?>
                                         </strong>
                                     </div>
                                 </div>
@@ -196,9 +190,9 @@ switch ((int) $order['trangThai']) {
                                 <div class="d-flex align-items-start gap-3">
                                     <i class="fas fa-map-marker-alt text-primary mt-1"></i>
                                     <div>
-                                        <small class="text-muted d-block">Địa điểm hẹn</small>
+                                        <small class="text-muted d-block">Địa điểm</small>
                                         <strong class="text-dark">
-                                            <?php echo !empty($order['diemhen']) ? htmlspecialchars($order['diemhen']) : '<span class="fst-italic text-muted">Chưa có địa chỉ</span>'; ?>
+                                            <?php echo !empty($order['diemhen']) ? htmlspecialchars($order['diemhen']) : 'N/A'; ?>
                                         </strong>
                                     </div>
                                 </div>
@@ -207,10 +201,8 @@ switch ((int) $order['trangThai']) {
                                 <div class="d-flex align-items-start gap-3">
                                     <i class="fas fa-tools text-primary mt-1"></i>
                                     <div>
-                                        <small class="text-muted d-block">Số lượng thiết bị</small>
-                                        <strong class="text-dark">
-                                            <?php echo !empty($order['devices']) ? count($order['devices']) : 0; ?> thiết bị
-                                        </strong>
+                                        <small class="text-muted d-block">Số thiết bị</small>
+                                        <strong class="text-dark"><?php echo count($devices); ?> thiết bị</strong>
                                     </div>
                                 </div>
                             </div>
@@ -239,10 +231,10 @@ switch ((int) $order['trangThai']) {
                                                 } else if ($order['noiSuaChua'] == 1) {
                                                     echo "🏪 Tại cửa hàng";
                                                 } else {
-                                                    echo '<span class="fst-italic text-muted">Chưa xác định</span>';
+                                                    echo 'Chưa xác định';
                                                 }
                                             } else {
-                                                echo '<span class="fst-italic text-muted">Chưa có thông tin</span>';
+                                                echo 'N/A';
                                             }
                                             ?>
                                         </strong>
@@ -266,48 +258,24 @@ switch ((int) $order['trangThai']) {
                 </div>
 
                 <!-- Danh sách thiết bị -->
-                <?php if (!empty($order['devices'])): ?>
+                <?php if (!empty($devices)): ?>
                     <div class="card shadow-sm border-0">
                         <div class="card-header bg-primary text-white">
                             <h3 class="h4 mb-0">
-                                <i class="fas fa-tools me-2"></i>Danh Sách Thiết Bị Sửa Chữa
+                                <i class="fas fa-tools me-2"></i>Danh Sách Thiết Bị
                             </h3>
                         </div>
                         <div class="card-body">
                             <div class="accordion" id="devicesAccordion">
-                                <?php foreach ($order['devices'] as $index => $device):
-                                    $deviceSafe = [
-                                        'loai_thietbi' => $device['loai_thietbi'] ?? '',
-                                        'tenThietBi' => $device['tenThietBi'] ?? '',
-                                        'thong_tin_thiet_bi' => $device['thong_tin_thiet_bi'] ?? null,
-                                        'mota_tinhtrang' => $device['mota_tinhtrang'] ?? null,
-                                        'maCTDon' => $device['maCTDon'] ?? null
-                                    ];
-
-                                    // Tìm thông tin sửa chữa
-                                    $deviceRepair = null;
-                                    if (!empty($repairDetails)) {
-                                        foreach ($repairDetails as $repair) {
-                                            if (isset($repair['maThietBi']) && $repair['maThietBi'] == $deviceSafe['loai_thietbi']) {
-                                                $deviceRepair = $repair;
-                                                break;
-                                            }
-                                        }
-                                    }
-
-                                    // Lấy danh sách công việc sửa chữa cho thiết bị này
-                                    $repairJobs = [];
+                                <?php foreach ($devices as $index => $device): 
+                                    $maCTDon = $device['maCTDon'] ?? null;
+                                    $repairJobs = $maCTDon ? ($deviceRepairJobs[$maCTDon] ?? []) : [];
+                                    $diagnosis = $maCTDon ? ($deviceDiagnoses[$maCTDon] ?? null) : null;
+                                    
                                     $totalCost = 0;
-                                    if (!empty($deviceSafe['maCTDon']) && isset($deviceRepairJobs[$deviceSafe['maCTDon']])) {
-                                        $repairJobs = $deviceRepairJobs[$deviceSafe['maCTDon']];
-                                        foreach ($repairJobs as $job) {
-                                            $totalCost += $job['chiPhi'] ?? 0;
-                                        }
+                                    foreach ($repairJobs as $job) {
+                                        $totalCost += $job['chiPhi'] ?? 0;
                                     }
-
-                                    $deviceName = !empty($deviceSafe['tenThietBi']) ?
-                                        $deviceSafe['tenThietBi'] :
-                                        ($deviceNames[$deviceSafe['loai_thietbi']] ?? $deviceSafe['loai_thietbi'] ?? 'Thiết bị không xác định');
                                 ?>
                                 <div class="accordion-item border-0 mb-3">
                                     <h2 class="accordion-header">
@@ -318,12 +286,10 @@ switch ((int) $order['trangThai']) {
                                             <div class="d-flex justify-content-between align-items-center w-100 me-3">
                                                 <div class="d-flex align-items-center gap-3">
                                                     <span class="badge bg-primary">Thiết bị <?php echo $index + 1; ?></span>
-                                                    <strong class="text-dark"><?php echo htmlspecialchars($deviceName); ?></strong>
+                                                    <strong class="text-dark"><?php echo htmlspecialchars($device['tenThietBi'] ?? 'Thiết bị không xác định'); ?></strong>
                                                 </div>
                                                 <?php if ($totalCost > 0): ?>
-                                                    <span class="badge bg-success fs-6">
-                                                        <?php echo number_format($totalCost); ?>đ
-                                                    </span>
+                                                    <span class="badge bg-success fs-6"><?php echo number_format($totalCost); ?>đ</span>
                                                 <?php endif; ?>
                                             </div>
                                         </button>
@@ -343,19 +309,17 @@ switch ((int) $order['trangThai']) {
                                                         <div class="card-body">
                                                             <div class="row">
                                                                 <div class="col-md-6 mb-3">
-                                                                    <small class="text-muted d-block">Loại thiết bị</small>
-                                                                    <strong><?php echo htmlspecialchars($deviceName); ?></strong>
+                                                                    <small class="text-muted d-block">Tên thiết bị</small>
+                                                                    <strong><?php echo htmlspecialchars($device['tenThietBi'] ?? 'N/A'); ?></strong>
                                                                 </div>
-                                                                <?php if (!empty($deviceSafe['thong_tin_thiet_bi'])): ?>
-                                                                    <div class="col-md-6 mb-3">
-                                                                        <small class="text-muted d-block">Mô tả</small>
-                                                                        <span><?php echo htmlspecialchars($deviceSafe['thong_tin_thiet_bi']); ?></span>
-                                                                    </div>
-                                                                <?php endif; ?>
-                                                                <?php if (!empty($deviceSafe['mota_tinhtrang'])): ?>
+                                                                <div class="col-md-6 mb-3">
+                                                                    <small class="text-muted d-block">Phiên bản</small>
+                                                                    <strong><?php echo !empty($device['phienBan']) ? htmlspecialchars($device['phienBan']) : 'N/A'; ?></strong>
+                                                                </div>
+                                                                <?php if (!empty($device['motaTinhTrang'])): ?>
                                                                     <div class="col-12">
                                                                         <small class="text-muted d-block">Mô tả tình trạng</small>
-                                                                        <span><?php echo htmlspecialchars($deviceSafe['mota_tinhtrang']); ?></span>
+                                                                        <span><?php echo htmlspecialchars($device['motaTinhTrang']); ?></span>
                                                                     </div>
                                                                 <?php endif; ?>
                                                             </div>
@@ -363,37 +327,37 @@ switch ((int) $order['trangThai']) {
                                                     </div>
                                                 </div>
 
-                                                <!-- Chuẩn đoán và sửa chữa -->
+                                                <!-- Thông tin sửa chữa -->
                                                 <div class="col-12">
                                                     <div class="card border">
                                                         <div class="card-header bg-light">
                                                             <h6 class="mb-0">
-                                                                <i class="fas fa-clipboard-check me-2 text-success"></i>Chuẩn Đoán & Sửa Chữa
+                                                                <i class="fas fa-clipboard-check me-2 text-success"></i>Thông Tin Sửa Chữa
                                                             </h6>
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="row g-4">
-                                                                <!-- Tình trạng thực tế -->
+                                                                <!-- Chẩn đoán -->
+                                                                <?php if ($diagnosis && !empty($diagnosis['tinh_trang_thuc_te'])): ?>
                                                                 <div class="col-12">
                                                                     <div class="border-start border-3 border-primary ps-3 mb-4">
                                                                         <small class="text-muted d-block">
-                                                                            <i class="fas fa-search me-1"></i>Tình trạng hư hại thực tế
+                                                                            <i class="fas fa-search me-1"></i>Chẩn đoán của KTV
                                                                         </small>
                                                                         <div class="mt-1">
-                                                                            <?php echo (!empty($deviceRepair['chuandoanKTV'])) ?
-                                                                                nl2br(htmlspecialchars($deviceRepair['chuandoanKTV'])) :
-                                                                                '<em class="text-muted">Chưa có thông tin chuẩn đoán</em>'; ?>
+                                                                            <?php echo nl2br(htmlspecialchars($diagnosis['tinh_trang_thuc_te'])); ?>
                                                                         </div>
                                                                     </div>
                                                                 </div>
+                                                                <?php endif; ?>
 
-                                                                <!-- DANH SÁCH CÔNG VIỆC SỬA CHỮA -->
+                                                                <!-- Công việc sửa chữa -->
                                                                 <?php if (!empty($repairJobs)): ?>
                                                                     <div class="col-12">
                                                                         <div class="card border-success">
                                                                             <div class="card-header bg-success text-white py-2">
                                                                                 <h6 class="mb-0">
-                                                                                    <i class="fas fa-list-check me-2"></i>Danh Sách Công Việc Sửa Chữa
+                                                                                    <i class="fas fa-list-check me-2"></i>Danh Sách Công Việc
                                                                                 </h6>
                                                                             </div>
                                                                             <div class="card-body p-0">
@@ -402,34 +366,23 @@ switch ((int) $order['trangThai']) {
                                                                                         <thead class="table-light">
                                                                                             <tr>
                                                                                                 <th width="10%">STT</th>
-                                                                                                <th width="55%">Công việc</th>
-                                                                                                <th width="20%">Chi phí (VND)</th>
-                                                                                                <th width="15%">Loại</th>
+                                                                                                <th width="60%">Công việc</th>
+                                                                                                <th width="30%">Chi phí (VND)</th>
                                                                                             </tr>
                                                                                         </thead>
                                                                                         <tbody>
-                                                                                            <?php
-                                                                                            $tongThietBi = 0;
-                                                                                            foreach ($repairJobs as $idx => $chiTiet):
-                                                                                                $tongThietBi += $chiTiet['chiPhi'];
-                                                                                                ?>
+                                                                                            <?php foreach ($repairJobs as $idx => $chiTiet): ?>
                                                                                                 <tr>
                                                                                                     <td class="text-center"><?php echo $idx + 1; ?></td>
-                                                                                                    <td><?php echo htmlspecialchars($chiTiet['loiSuaChua']); ?></td>
-                                                                                                    <td class="text-end"><?php echo number_format($chiTiet['chiPhi']); ?></td>
-                                                                                                    <td class="text-center">
-                                                                                                        <span class="badge bg-<?php echo $chiTiet['loai'] == 'chuan' ? 'primary' : 'warning'; ?>">
-                                                                                                            <?php echo $chiTiet['loai']; ?>
-                                                                                                        </span>
-                                                                                                    </td>
+                                                                                                    <td><?php echo htmlspecialchars($chiTiet['loiSuaChua'] ?? ''); ?></td>
+                                                                                                    <td class="text-end"><?php echo number_format($chiTiet['chiPhi'] ?? 0); ?></td>
                                                                                                 </tr>
                                                                                             <?php endforeach; ?>
                                                                                         </tbody>
                                                                                         <tfoot>
                                                                                             <tr class="table-secondary">
                                                                                                 <td colspan="2" class="text-end fw-bold">Tổng cộng:</td>
-                                                                                                <td class="text-end fw-bold"><?php echo number_format($tongThietBi); ?></td>
-                                                                                                <td></td>
+                                                                                                <td class="text-end fw-bold"><?php echo number_format($totalCost); ?></td>
                                                                                             </tr>
                                                                                         </tfoot>
                                                                                     </table>
@@ -442,37 +395,6 @@ switch ((int) $order['trangThai']) {
                                                                         <div class="alert alert-info">
                                                                             <i class="fas fa-info-circle me-2"></i>
                                                                             Chưa có công việc sửa chữa nào được thêm
-                                                                        </div>
-                                                                    </div>
-                                                                <?php endif; ?>
-
-                                                                <!-- Thiếu linh kiện -->
-                                                                <div class="col-md-6">
-                                                                    <div class="border-start border-3 border-info ps-3">
-                                                                        <small class="text-muted d-block">
-                                                                            <i class="fas fa-sticky-note me-1"></i>Thiếu linh kiện
-                                                                        </small>
-                                                                        <div class="mt-1">
-                                                                            <?php
-                                                                            $thieuLinhKien = isset($deviceRepair['thieuLinhKien']) && !empty($deviceRepair['thieuLinhKien'])
-                                                                                ? nl2br(htmlspecialchars($deviceRepair['thieuLinhKien']))
-                                                                                : '<em class="text-muted">Chưa có thông tin thiếu linh kiện</em>';
-                                                                            echo $thieuLinhKien;
-                                                                            ?>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <!-- Ghi chú kỹ thuật -->
-                                                                <?php if (!empty($deviceRepair['ghi_chu_ky_thuat'])): ?>
-                                                                    <div class="col-12">
-                                                                        <div class="border-start border-3 border-secondary ps-3">
-                                                                            <small class="text-muted d-block">
-                                                                                <i class="fas fa-sticky-note me-1"></i>Ghi chú kỹ thuật
-                                                                            </small>
-                                                                            <div class="mt-1 alert alert-secondary">
-                                                                                <?php echo nl2br(htmlspecialchars($deviceRepair['ghi_chu_ky_thuat'])); ?>
-                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 <?php endif; ?>
@@ -528,11 +450,11 @@ switch ((int) $order['trangThai']) {
                     </div>
                 </div>
 
-                <!-- 👇 THÔNG TIN KỸ THUẬT VIÊN -->
+                <!-- Thông tin KTV -->
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-info text-white">
                         <h3 class="h4 mb-0">
-                            <i class="fas fa-user-cog me-2"></i>Kỹ Thuật Viên Phụ Trách
+                            <i class="fas fa-user-cog me-2"></i>Kỹ Thuật Viên
                         </h3>
                     </div>
                     <div class="card-body">
@@ -556,40 +478,11 @@ switch ((int) $order['trangThai']) {
                         <?php else: ?>
                             <div class="text-center text-muted py-3">
                                 <i class="fas fa-user-clock fa-2x mb-2"></i>
-                                <p class="mb-0">Chưa có kỹ thuật viên tiếp nhận</p>
+                                <p class="mb-0">Chưa có KTV tiếp nhận</p>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
-
-                <!-- Tổng chi phí đơn hàng -->
-                <?php
-                $totalOrderCost = 0;
-                if (!empty($order['devices'])) {
-                    foreach ($order['devices'] as $device) {
-                        $maCTDon = $device['maCTDon'] ?? null;
-                        if ($maCTDon && isset($deviceRepairJobs[$maCTDon])) {
-                            foreach ($deviceRepairJobs[$maCTDon] as $job) {
-                                $totalOrderCost += $job['chiPhi'] ?? 0;
-                            }
-                        }
-                    }
-                }
-                ?>
-
-                <?php if ($totalOrderCost > 0): ?>
-                    <div class="card shadow-sm border-0 mb-4">
-                        <div class="card-header bg-success text-white">
-                            <h3 class="h4 mb-0">
-                                <i class="fas fa-money-bill-wave me-2"></i>Tổng Chi Phí
-                            </h3>
-                        </div>
-                        <div class="card-body text-center">
-                            <h2 class="text-success fw-bold"><?php echo number_format($totalOrderCost); ?>đ</h2>
-                            <p class="text-muted mb-0">Tổng chi phí sửa chữa cho đơn hàng</p>
-                        </div>
-                    </div>
-                <?php endif; ?>
 
                 <!-- Action Buttons -->
                 <div class="card shadow-sm border-0">
@@ -612,12 +505,10 @@ switch ((int) $order['trangThai']) {
 </main>
 
 <style>
-/* Minimal custom CSS chỉ cho gradient và hiệu ứng */
 .bg-gradient-primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 
-/* Custom cho accordion */
 .accordion-button:not(.collapsed) {
     background-color: #e7f1ff !important;
     color: #0c63e4 !important;
@@ -628,7 +519,6 @@ switch ((int) $order['trangThai']) {
     border-color: rgba(0,0,0,.125);
 }
 
-/* Custom cho bảng công việc */
 .table th {
     background-color: #f8f9fa;
     border-bottom: 2px solid #dee2e6;

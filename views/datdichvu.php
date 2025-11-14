@@ -749,62 +749,60 @@ $userInfo = $khachhang->layKHByID($maKH)
 
     // LOAD SLOTS THEO NGÀY (GIỮ NGUYÊN)
     async function loadSlotsForDate(date) {
-        console.log("🚀 Bắt đầu load slots cho ngày:", date);
+    console.log("Bắt đầu load slots cho ngày:", date);
 
-        const timeContainer = document.getElementById('time-slots-container');
-        if (!timeContainer) {
-            console.error("❌ Không tìm thấy time-slots-container");
-            return;
-        }
+    const timeContainer = document.getElementById('time-slots-container');
+    if (!timeContainer) {
+        console.error("Không tìm thấy time-slots-container");
+        return;
+    }
 
-        // Hiển thị loading
-        timeContainer.innerHTML = `
+    timeContainer.innerHTML = `
         <div class="col-12 text-center p-4">
             <div class="spinner-border text-primary mb-2"></div>
             <p class="text-muted">Đang tải khung giờ...</p>
         </div>
     `;
 
-        try {
-            const formData = new FormData();
-            formData.append('action', 'get_slots');
-            formData.append('date', date);
+    try {
+        const formData = new FormData();
+        formData.append('action', 'get_slots');
+        formData.append('date', date);
 
-            const response = await fetch('<?php echo url("ajax-booking"); ?>', {
-                method: 'POST',
-                body: formData
-            });
+        // TÍNH GIỜ HIỆN TẠI THEO NGÀY
+        const selectedDate = new Date(date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
 
-            console.log("📥 Response status:", response.status);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const responseText = await response.text();
-            console.log("📄 Response text:", responseText.substring(0, 200) + "...");
-
-            let result;
-            try {
-                result = JSON.parse(responseText);
-                console.log("✅ Parse JSON thành công");
-            } catch (parseError) {
-                console.error("❌ Lỗi parse JSON:", parseError);
-                throw new Error('Dữ liệu trả về không hợp lệ');
-            }
-
-            if (result.success) {
-                console.log("✅ Có dữ liệu slots:", result.slots?.length || 0, "slots");
-                updateSlotsDisplay(result.slots, date);
-            } else {
-                console.error("❌ API trả về lỗi:", result.error);
-                showSlotError(result.error || 'Lỗi không xác định từ server');
-            }
-        } catch (error) {
-            console.error("❌ Lỗi fetch:", error);
-            showSlotError('Lỗi kết nối: ' + error.message);
+        let currentHour;
+        if (selectedDate.getTime() === today.getTime()) {
+            currentHour = new Date().getHours(); // Hôm nay
+        } else {
+            currentHour = 0; // Ngày khác → chưa qua giờ nào
         }
+
+        formData.append('current_hour', currentHour);
+
+        const response = await fetch('<?php echo url("ajax-booking"); ?>', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const result = await response.json();
+
+        if (result.success) {
+            updateSlotsDisplay(result.slots, date);
+        } else {
+            showSlotError(result.error || 'Lỗi server');
+        }
+    } catch (error) {
+        console.error("Lỗi fetch:", error);
+        showSlotError('Lỗi kết nối: ' + error.message);
     }
+}
 
     function showSlotError(message) {
         const timeContainer = document.getElementById('time-slots-container');
