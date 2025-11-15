@@ -64,7 +64,7 @@ $completedOrders = 156; // Số đơn đã hoàn thành
             
             <div class="function-grid">
                 <!-- Xem đơn phân công -->
-                <a href="<?php echo url('KTV/xemDDV'); ?>" class="function-card">
+                <a href="<?php echo url('KTV/don-cua-toi'); ?>" class="function-card">
                     <div class="function-icon assigned-orders">
                         <i class="fas fa-clipboard-check"></i>
                     </div>

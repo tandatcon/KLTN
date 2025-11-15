@@ -1,15 +1,18 @@
 <?php
-class DonHangService {
+class DonHangService
+{
     private $db;
-    
-    public function __construct($db) {
+
+    public function __construct($db)
+    {
         $this->db = $db;
     }
 
     /**
      * Lấy thông tin đơn hàng của khách hàng
      */
-    public function getOrdersByCustomer($maKH) {
+    public function getOrdersByCustomer($maKH)
+    {
         try {
             $sql = "
             SELECT 
@@ -33,11 +36,11 @@ class DonHangService {
         GROUP BY ddv.maDon
         ORDER BY ddv.ngayDat DESC, ddv.maDon DESC
             ";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maKH]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy đơn hàng: " . $e->getMessage());
             return [];
@@ -47,7 +50,8 @@ class DonHangService {
     /**
      * Lấy thông tin chi tiết một đơn hàng
      */
-    public function getOrderDetail($maDon, $maKH = null) {
+    public function getOrderDetail($maDon, $maKH = null)
+    {
         try {
             $sql = "
             SELECT 
@@ -66,17 +70,17 @@ class DonHangService {
             LEFT JOIN nguoidung kh ON ddv.maKH = kh.maND AND kh.maVaiTro = 1    -- Khách hàng
             WHERE ddv.maDon = ?
         ";
-            
+
             $params = [$maDon];
             if ($maKH) {
                 $sql .= " AND ddv.maKH = ?";
                 $params[] = $maKH;
             }
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy chi tiết đơn hàng: " . $e->getMessage());
             return null;
@@ -86,7 +90,8 @@ class DonHangService {
     /**
      * Lấy danh sách thiết bị trong đơn hàng
      */
-    public function getOrderDevices($maDon) {
+    public function getOrderDevices($maDon)
+    {
         try {
             $sql = "
                 SELECT 
@@ -98,11 +103,11 @@ class DonHangService {
                 WHERE ctddv.maDon = ?
                 ORDER BY ctddv.maCTDon
             ";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maDon]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy thiết bị đơn hàng: " . $e->getMessage());
             return [];
@@ -113,39 +118,40 @@ class DonHangService {
     /**
      * Hủy đơn hàng
      */
-    public function cancelOrder($maDon, $maKH) {
+    public function cancelOrder($maDon, $maKH)
+    {
         try {
             // Kiểm tra đơn hàng thuộc về khách hàng
             $sqlCheck = "SELECT trangThai FROM dondichvu WHERE maDon = ? AND maKH = ?";
             $stmtCheck = $this->db->prepare($sqlCheck);
             $stmtCheck->execute([$maDon, $maKH]);
             $order = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$order) {
                 throw new Exception("Đơn hàng không tồn tại hoặc không thuộc quyền sở hữu");
             }
-            
+
             // Chỉ cho phép hủy đơn có trạng thái "Đã đặt" (1)
             if ($order['trangThai'] != 1) {
                 throw new Exception("Chỉ có thể hủy đơn hàng ở trạng thái 'Đã đặt'");
             }
-            
+
             // Cập nhật trạng thái đơn hàng về "Đã hủy" (0)
             $sqlUpdate = "UPDATE dondichvu SET trangThai = 0 WHERE maDon = ? AND maKH = ?";
             $stmtUpdate = $this->db->prepare($sqlUpdate);
             $success = $stmtUpdate->execute([$maDon, $maKH]);
-            
+
             if ($success) {
                 // Cập nhật trạng thái chi tiết đơn hàng
                 $sqlUpdateDetail = "UPDATE chitietdondichvu SET trangThai = 0 WHERE maDon = ?";
                 $stmtUpdateDetail = $this->db->prepare($sqlUpdateDetail);
                 $stmtUpdateDetail->execute([$maDon]);
-                
+
                 return true;
             }
-            
+
             return false;
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi hủy đơn hàng: " . $e->getMessage());
             throw $e;
@@ -155,13 +161,14 @@ class DonHangService {
     /**
      * Lấy thông tin khách hàng
      */
-    public function getCustomerInfo($maKH) {
+    public function getCustomerInfo($maKH)
+    {
         try {
             $sql = "SELECT maND, hoTen, sdt, email FROM nguoidung WHERE maND = ? and maVaiTro=1";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maKH]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy thông tin khách hàng: " . $e->getMessage());
             return null;
@@ -171,22 +178,24 @@ class DonHangService {
     /**
      * Lấy tên thiết bị từ danh sách mã
      */
-    public function getDeviceNames($deviceIds) {
+    public function getDeviceNames($deviceIds)
+    {
         try {
-            if (empty($deviceIds)) return [];
-            
+            if (empty($deviceIds))
+                return [];
+
             $placeholders = str_repeat('?,', count($deviceIds) - 1) . '?';
             $sql = "SELECT maThietBi, tenThietBi FROM thietbi WHERE maThietBi IN ($placeholders)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute($deviceIds);
-            
+
             $result = [];
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $result[$row['maThietBi']] = $row['tenThietBi'];
             }
-            
+
             return $result;
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy tên thiết bị: " . $e->getMessage());
             return [];
@@ -196,15 +205,16 @@ class DonHangService {
     /**
      * Lấy tất cả dữ liệu cần thiết cho trang my_orders
      */
-    public function getOrdersData($maKH) {
+    public function getOrdersData($maKH)
+    {
         $data = [];
-        
+
         // Thông tin khách hàng
         $data['userInfo'] = $this->getCustomerInfo($maKH);
-        
+
         // Danh sách đơn hàng
         $data['orders'] = $this->getOrdersByCustomer($maKH);
-        
+
         // Lấy tất cả mã thiết bị để lấy tên
         $allDeviceIds = [];
         foreach ($data['orders'] as $order) {
@@ -213,10 +223,10 @@ class DonHangService {
                 $allDeviceIds = array_merge($allDeviceIds, $deviceIds);
             }
         }
-        
+
         // Tên thiết bị
         $data['deviceNames'] = $this->getDeviceNames(array_unique($allDeviceIds));
-        
+
         return $data;
     }
 
@@ -237,28 +247,30 @@ class DonHangService {
         }
     }
 
-    
+
     //----------------------------------------------------------------------------
 
 
     ///--------------------------------------------------------------------------
- /**
+    /**
      * Lấy thông tin KTV theo mã KTV
      */
-    public function getTechnicianInfo($maKTV) {
+    public function getTechnicianInfo($maKTV)
+    {
         try {
-            if (!$maKTV) return null;
-            
+            if (!$maKTV)
+                return null;
+
             $sql = "
                 SELECT maND as maNV, hoTen, sdt, email
                 FROM nguoidung 
                 WHERE maND = ? AND maVaiTro = 3
             ";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maKTV]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy thông tin KTV: " . $e->getMessage());
             return null;
@@ -268,7 +280,8 @@ class DonHangService {
     /**
      * Lấy chi tiết thiết bị với thông tin đầy đủ
      */
-    public function getOrderDevicesDetail($order_id) {
+    public function getOrderDevicesDetail($order_id)
+    {
         try {
             $sql = "SELECT 
                     ctddv.*,
@@ -278,11 +291,11 @@ class DonHangService {
                 JOIN thietbi tb ON ctddv.maThietBi = tb.maThietBi
                 WHERE ctddv.maDon = ?
                 ORDER BY ctddv.maCTDon";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$order_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
         } catch (Exception $e) {
             error_log("Lỗi khi lấy chi tiết thiết bị: " . $e->getMessage());
             return [];
@@ -292,7 +305,8 @@ class DonHangService {
     /**
      * Lấy tất cả chi tiết sửa chữa của đơn hàng
      */
-    public function getAllRepairDetails($maDon) {
+    public function getAllRepairDetails($maDon)
+    {
         try {
             $sql = "SELECT 
                     ctsc.*,
@@ -304,7 +318,7 @@ class DonHangService {
                 LEFT JOIN thietbi tb ON ctddv.maThietBi = tb.maThietBi
                 WHERE ctsc.maDon = ?
                 ORDER BY ctddv.maCTDon, ctsc.created_at ASC";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maDon]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -317,7 +331,8 @@ class DonHangService {
     /**
      * Lấy chẩn đoán của thiết bị
      */
-    public function getDeviceDiagnosis($maDon, $maCTDon) {
+    public function getDeviceDiagnosis($maDon, $maCTDon)
+    {
         try {
             $sql = "SELECT 
                         chuandoanKTV as tinh_trang_thuc_te,
@@ -327,7 +342,7 @@ class DonHangService {
                         lyDoTC
                     FROM chitietdondichvu 
                     WHERE maDon = ? AND maCTDon = ?";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maDon, $maCTDon]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -340,7 +355,8 @@ class DonHangService {
     /**
      * Lấy chi tiết sửa chữa theo thiết bị
      */
-    public function getDeviceRepairDetails($maDon, $maCTDon) {
+    public function getDeviceRepairDetails($maDon, $maCTDon)
+    {
         try {
             $sql = "SELECT * FROM chitietsuachua 
                     WHERE maDon = ? AND maCTDon = ?  
@@ -357,7 +373,8 @@ class DonHangService {
     /**
      * Lấy lịch sử thao tác của đơn hàng
      */
-    public function getServiceActions($maDon) {
+    public function getServiceActions($maDon)
+    {
         try {
             $sql = "SELECT lstd.*, nd.hoTen as technician_name 
                     FROM lich_su_thaotac lstd 
@@ -370,6 +387,145 @@ class DonHangService {
         } catch (Exception $e) {
             error_log("Lỗi khi lấy lịch sử thao tác: " . $e->getMessage());
             return [];
+        }
+    }
+
+    // Lấy đơn hôm nay được phân công cho KTV
+    public function getDonHomNayByKTV($ktvId)
+    {
+        try {
+            $sql = "SELECT DISTINCT  dd.*, 
+            (SELECT COUNT(*) FROM chitietdondichvu WHERE maDon = dd.maDon) as loai_thietbi,
+            kh.hoTen as customer_name, kh.sdt
+            FROM dondichvu dd
+            JOIN nguoidung kh ON dd.maKH = kh.maND
+            WHERE
+            dd.MaKTV = ? and
+            DATE(dd.ngayDat) = CURDATE()
+            AND dd.trangThai = 1
+            ORDER BY dd.ngayDat DESC
+            LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$ktvId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("getDonHomNayByKTV Error: " . $e->getMessage());
+            return [];
+        }
+    }
+    // Lấy tất cả đơn được phân công cho KTV
+    public function getDonPhanCongByKTV($ktvId)
+    {
+        try {
+            $sql = "SELECT dd.*, dd.MaKTV, kh.hoTen as customer_name ,kh.sdt,tb.tenThietBi
+                FROM dondichvu dd
+                JOIN chitietdondichvu ctdd ON dd.maDon = ctdd.maDon
+                JOIN nguoidung kh ON dd.MaKH = kh.maND
+                JOIN thietbi tb on tb.maThietBi=ctdd.MaThietBi
+                WHERE dd.MaKTV = ? 
+                AND dd.trangThai IN ('1', '2', '3')
+                ORDER BY dd.ngayDat DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$ktvId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("getDonPhanCongByKTV Error: " . $e->getMessage());
+            return [];
+        }
+    }
+    public function layTatCaChiTietDonDichVu($maDon)
+    {
+        try {
+            $sql = "SELECT DISTINCT
+            ctdd.maCTDon,
+            ctdd.maDon,
+            ctdd.MaThietBi,
+            ctdd.phienban,
+            ctdd.gioBatDau,
+            ctdd.gioKetThuc,
+            ctdd.motaTinhTrang,
+            ctdd.quyetDinhSC,
+            ctdd.trangThai,
+            ctdd.minhchung_den,
+            ctdd.minhchung_thietbi,
+            tb.maThietBi,
+            tb.tenThietBi,
+            b.hoTen as tenKTV
+        FROM chitietdondichvu ctdd 
+        JOIN thietbi tb ON tb.maThietBi = ctdd.MaThietBi
+        JOIN dondichvu dd on dd.maDon=ctdd.maDon
+        JOIN nguoidung b ON dd.MaKTV = b.maND
+        WHERE ctdd.maDon = ?";
+                 
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$maDon]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("layTatCaChiTietDonDichVu Error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Lấy chi tiết đơn hàng cho KTV (cập nhật hoàn toàn)
+     */
+    public function layChiTietDonChoKTV($maDon, $idKTV)
+    {
+        try {
+            // Kiểm tra KTV có được phân công đơn này không và lấy tên KTV
+            $sqlKiemTra = "SELECT 1, b.hoTen as tenKTV 
+                       FROM dondichvu a
+                       JOIN nguoidung b ON a.MaKTV = b.maND
+                       WHERE a.maDon = ? AND a.MaKTV = ?";
+            $stmtKiemTra = $this->db->prepare($sqlKiemTra);
+            $stmtKiemTra->execute([$maDon, $idKTV]);
+
+            $ktvInfo = $stmtKiemTra->fetch(PDO::FETCH_ASSOC);
+
+            if (!$ktvInfo) {
+                return false; // KTV không có quyền xem đơn này
+            }
+
+            $tenKTV = $ktvInfo['tenKTV'];
+
+            // Lấy thông tin cơ bản đơn hàng
+            $sqlDonHang = "SELECT dd.*, kh.hoTen as customer_name, kh.sdt, kh.email
+                       FROM dondichvu dd
+                       JOIN nguoidung kh ON dd.MaKH = kh.maND
+                       WHERE dd.maDon = ?";
+
+            $stmtDonHang = $this->db->prepare($sqlDonHang);
+            $stmtDonHang->execute([$maDon]);
+            $donHang = $stmtDonHang->fetch(PDO::FETCH_ASSOC);
+
+            if (!$donHang) {
+                return false;
+            }
+
+            // Lấy tất cả chi tiết đơn dịch vụ và thông tin sửa chữa
+            $chiTietDonDichVu = $this->layTatCaChiTietDonDichVu($maDon);
+
+            return [
+                'donHang' => $donHang,
+                'chiTietDonDichVu' => $chiTietDonDichVu,
+                'thongTinKhachHang' => [
+                    'hoTen' => $donHang['customer_name'],
+                    'sdt' => $donHang['sdt'],
+                    'email' => $donHang['email']
+                ],
+                'thongTinKTV' => [
+                    'tenKTV' => $tenKTV
+                ]
+            ];
+
+        } catch (Exception $e) {
+            error_log("layChiTietDonChoKTV Error: " . $e->getMessage());
+            return false;
         }
     }
 }

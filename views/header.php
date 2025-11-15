@@ -677,19 +677,25 @@ if (!defined('BASE_URL')) {
                         <a href="<?php echo url('home'); ?>" class="main-nav-item">
                             <i class="fas fa-home me-2"></i>TRANG CHỦ
                         </a>
-                        <a href="<?php echo url('datdichvu'); ?>" class="main-nav-item">
+                        <a href="<?php echo url('dat-dich-vu'); ?>" class="main-nav-item">
                             <i class="fas fa-tools me-2"></i>DỊCH VỤ
                         </a>
-                        <a href="<?php echo url('banggia'); ?>" class="main-nav-item">
+                        <?php if (isset($_SESSION['user_id']) && $_SESSION['role'] == 1): ?>
+                            <a href="<?php echo url('don-cua-toi'); ?>" class="main-nav-item">
+                                <i class="fas fa-list me-2"></i>ĐƠN CỦA TÔI
+                            </a>
+                        <?php endif; ?>
+                        <a href="<?php echo url('bang-gia'); ?>" class="main-nav-item">
                             <i class="fas fa-tags me-2"></i>BẢNG GIÁ
                         </a>
-                        <a href="<?php echo url('contact'); ?>" class="main-nav-item">
+                        <a href="<?php echo url('lien-he'); ?>" class="main-nav-item">
                             <i class="fas fa-phone me-2"></i>LIÊN HỆ
                         </a>
-                        <a href="<?php echo url('about'); ?>" class="main-nav-item">
-                            <i class="fas fa-info-circle me-2"></i>GIỚI THIỆU
-                        </a>
+
+                        
+
                     <?php else: ?>
+
                         <!-- Menu cho các role khác (Nhân viên, Kỹ thuật viên, Quản lý) -->
                         <?php if ($_SESSION['role'] == 2): ?>
                             <!-- NHÂN VIÊN -->
@@ -765,7 +771,7 @@ if (!defined('BASE_URL')) {
                         </div>
                     <?php else: ?>
                         <!-- LOGIN BUTTON -->
-                        <a href="<?php echo url('login'); ?>" class="btn btn-primary-custom">
+                        <a href="<?php echo url('dang-nhap'); ?>" class="btn btn-primary-custom">
                             <i class="fas fa-sign-in-alt me-2"></i>ĐĂNG NHẬP
                         </a>
                     <?php endif; ?>
@@ -881,35 +887,35 @@ if (!defined('BASE_URL')) {
         const notification = new NotificationSystem();
 
         document.addEventListener('DOMContentLoaded', function () {
-    // Xử lý thông báo từ session
-    <?php if (isset($_SESSION['success_message'])): ?>
-        setTimeout(() => {
-            notification.success('<?php echo addslashes($_SESSION['success_message']); ?>');
-        }, 500);
-        <?php unset($_SESSION['success_message']); ?>
-    <?php endif; ?>
+            // Xử lý thông báo từ session
+            <?php if (isset($_SESSION['success_message'])): ?>
+                setTimeout(() => {
+                    notification.success('<?php echo addslashes($_SESSION['success_message']); ?>');
+                }, 500);
+                <?php unset($_SESSION['success_message']); ?>
+            <?php endif; ?>
 
-    <?php if (isset($_SESSION['error'])): ?>
-        setTimeout(() => {
-            notification.error('<?php echo addslashes($_SESSION['error']); ?>');
-        }, 500);
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
+            <?php if (isset($_SESSION['error'])): ?>
+                setTimeout(() => {
+                    notification.error('<?php echo addslashes($_SESSION['error']); ?>');
+                }, 500);
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
 
-    <?php if (isset($_SESSION['warning_message'])): ?>
-        setTimeout(() => {
-            notification.warning('<?php echo addslashes($_SESSION['warning_message']); ?>');
-        }, 500);
-        <?php unset($_SESSION['warning_message']); ?>
-    <?php endif; ?>
+            <?php if (isset($_SESSION['warning_message'])): ?>
+                setTimeout(() => {
+                    notification.warning('<?php echo addslashes($_SESSION['warning_message']); ?>');
+                }, 500);
+                <?php unset($_SESSION['warning_message']); ?>
+            <?php endif; ?>
 
-    <?php if (isset($_SESSION['info_message'])): ?>
-        setTimeout(() => {
-            notification.info('<?php echo addslashes($_SESSION['info_message']); ?>');
-        }, 500);
-        <?php unset($_SESSION['info_message']); ?>
-    <?php endif; ?>
-});
+            <?php if (isset($_SESSION['info_message'])): ?>
+                setTimeout(() => {
+                    notification.info('<?php echo addslashes($_SESSION['info_message']); ?>');
+                }, 500);
+                <?php unset($_SESSION['info_message']); ?>
+            <?php endif; ?>
+        });
 
         window.showNotification = notification;
 
