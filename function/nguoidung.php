@@ -14,7 +14,6 @@ class NguoiDungService {
             $sql = "SELECT maND, sdt, hoTen, password, login_method, maVaiTro 
                     FROM nguoidung 
                     WHERE sdt = ? AND login_method = 'normal' AND trangThaiHD = 1";
-            echo $sql.$sdt;
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$sdt]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -51,7 +50,7 @@ class NguoiDungService {
     /**
      * Đăng ký tài khoản mới
      */
-    public function dangKy($hoTen, $sdt, $email, $matKhau) {
+    public function dangKy($hoTen, $sdt, $email, $matKhau,$diachi) {
         try {
             // Kiểm tra số điện thoại đã tồn tại chưa
             if ($this->kiemTraSoDienThoaiTonTai($sdt)) {
@@ -69,13 +68,13 @@ class NguoiDungService {
                 ];
             }
 
-            $sql = "INSERT INTO nguoidung (hoTen, sdt, email, password, login_method, maVaiTro,  trangThaiHD, ngayTao) 
-                    VALUES (?, ?, ?, ?, 'normal', 1, 1, NOW())";
+            $sql = "INSERT INTO nguoidung (hoTen, sdt, email, password, login_method, maVaiTro,  trangThaiHD, ngayTao,diaChi) 
+                    VALUES (?, ?, ?, ?, 'normal', 1, 1, NOW(),?)";
             
             $stmt = $this->db->prepare($sql);
             $hashedPassword = password_hash($matKhau, PASSWORD_DEFAULT);
             
-            $success = $stmt->execute([$hoTen, $sdt, $email, $hashedPassword]);
+            $success = $stmt->execute([$hoTen, $sdt, $email, $hashedPassword,$diachi]);
             
             if ($success) {
                 $maND = $this->db->lastInsertId();

@@ -459,7 +459,7 @@ class DonHangService
         JOIN dondichvu dd on dd.maDon=ctdd.maDon
         JOIN nguoidung b ON dd.MaKTV = b.maND
         WHERE ctdd.maDon = ?";
-                 
+
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$maDon]);
@@ -526,6 +526,153 @@ class DonHangService
         } catch (Exception $e) {
             error_log("layChiTietDonChoKTV Error: " . $e->getMessage());
             return false;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public function getDiemTichLuy($maKH)
+    {
+        try {
+            $sql = "SELECT diemTichLuy FROM khachhang WHERE maND = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$maKH]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $result ? (int) $result['diemTichLuy'] : 0;
+        } catch (PDOException $e) {
+            error_log("Lỗi lấy điểm tích lũy: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Thực hiện thanh toán đơn hàng
+     */
+    public function thucHienThanhToan($maDon, $tienThanhToan, $diemSuDung, $maKH)
+    {
+        $this->db->beginTransaction();
+
+        try {
+            // 1. Tính điểm tích lũy nhận được (1.5% tổng tiền thanh toán thực tế)
+            $diemNhanDuoc = $this->tinhDiemTichLuy($tienThanhToan);
+
+            // 2. Cập nhật điểm tích lũy cho khách hàng
+            $this->capNhatDiemTichLuy($maKH, $diemSuDung, $diemNhanDuoc);
+
+            // 3. Cập nhật trạng thái thanh toán cho đơn hàng
+            $sqlUpdateDon = "UPDATE dondichvu 
+                            SET thanhToan = 1, 
+                                tongTien = ?,
+                                diemSuDung = ?,
+                                diemTichLuy = ?,
+                                ngayThanhToan = NOW() 
+                            WHERE maDon = ?";
+
+            $stmt = $this->db->prepare($sqlUpdateDon);
+            $stmt->execute([$tienThanhToan, $diemSuDung, $diemNhanDuoc, $maDon]);
+
+            // 4. Ghi log lịch sử thanh toán
+            $this->ghiLichSuThanhToan($maDon, $tienThanhToan, $diemSuDung, $diemNhanDuoc);
+
+            $this->db->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Lỗi thanh toán: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Tính điểm tích lũy nhận được (1.5% tổng thanh toán)
+     */
+    private function tinhDiemTichLuy($tienThanhToan)
+    {
+        // 1.5% tổng thanh toán, chia cho 1000 để quy đổi sang điểm
+        // 1 điểm = 1,000 VND giá trị thực
+        $diem = ($tienThanhToan * 0.015) / 1000;
+        return round($diem); // Làm tròn đến điểm nguyên
+    }
+
+    /**
+     * Cập nhật điểm tích lũy cho khách hàng
+     */
+    private function capNhatDiemTichLuy($maKH, $diemSuDung, $diemNhanDuoc)
+    {
+        // Điểm mới = Điểm hiện tại - Điểm sử dụng + Điểm nhận được
+        $sql = "UPDATE khachhang 
+                SET diemTichLuy = diemTichLuy - ? + ? 
+                WHERE maND = ? AND diemTichLuy >= ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$diemSuDung, $diemNhanDuoc, $maKH, $diemSuDung]);
+
+        if ($stmt->rowCount() === 0) {
+            throw new Exception("Không đủ điểm tích lũy để thực hiện thanh toán");
+        }
+    }
+
+    /**
+     * Ghi lịch sử thanh toán
+     */
+    private function ghiLichSuThanhToan($maDon, $tienThanhToan, $diemSuDung, $diemNhanDuoc)
+    {
+        $sql = "INSERT INTO lichsuthanhtoan 
+                (maDon, soTien, diemSuDung, diemNhanDuoc, ngayThanhToan) 
+                VALUES (?, ?, ?, ?, NOW())";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$maDon, $tienThanhToan, $diemSuDung, $diemNhanDuoc]);
+    }
+
+    /**
+     * Lấy lịch sử thanh toán của đơn hàng
+     */
+    public function getLichSuThanhToan($maDon)
+    {
+        try {
+            $sql = "SELECT * FROM lichsuthanhtoan WHERE maDon = ? ORDER BY ngayThanhToan DESC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$maDon]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Lỗi lấy lịch sử thanh toán: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Lấy thông tin thanh toán chi tiết của đơn hàng
+     */
+    public function getThongTinThanhToan($maDon)
+    {
+        try {
+            $sql = "SELECT ddv.maDon, ddv.tongTien, ddv.thanhToan, ddv.diemSuDung, ddv.diemTichLuy,
+                           ddv.ngayThanhToan, kh.diemTichLuy as diemHienCo
+                    FROM dondichvu ddv
+                    LEFT JOIN khachhang kh ON ddv.maKH = kh.maND
+                    WHERE ddv.maDon = ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$maDon]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $e) {
+            error_log("Lỗi lấy thông tin thanh toán: " . $e->getMessage());
+            return null;
         }
     }
 }

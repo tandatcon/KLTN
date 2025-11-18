@@ -103,7 +103,7 @@ if ($statusFilter !== 'all') {
                                         <?php if ($order['noiSuaChua'] == 1): ?>
                                             <span class="badge bg-success">Cửa hàng</span>
                                         <?php else: ?>
-                                            <span class="badge bg-info">Nhà KH</span>
+                                            <span class="badge bg-info">Nhà Khách Hàng</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>

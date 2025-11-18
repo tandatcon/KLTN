@@ -35,7 +35,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] == 1) {
                 </a>
 
                 <!-- Lập dịch vụ -->
-                <a href="<?php echo url('employee/themdichvu'); ?>" class="function-card">
+                <a href="<?php echo url('employee/them-dich-vu'); ?>" class="function-card">
                     <div class="function-icon create-service">
                         <i class="fas fa-tools"></i>
                     </div>

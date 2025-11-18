@@ -787,7 +787,7 @@ if (!defined('BASE_URL')) {
     {
         switch ($role) {
             case 1:
-                return url('profile');
+                return url('ca-nhan');
             case 2:
                 return url('employee/profile');
             case 3:

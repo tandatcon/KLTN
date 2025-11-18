@@ -1,5 +1,5 @@
 <?php
-//error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 require_once 'config.php';
 require_once 'helpers.php';
 
@@ -70,7 +70,7 @@ if (in_array($page, $protectedCustomerPages)) {
     if (!isset($_SESSION['user_id'])) {
         $_SESSION['warning_message']  = "Vui lòng đăng nhập để thực hiện thao tác!.";
 
-        header('Location: ' . url('login'));
+        header('Location: ' . url('dang-nhap'));
         exit();
     }
     // Nếu là employee/KTV/quanly cố truy cập trang customer -> về dashboard tương ứng
