@@ -1098,36 +1098,47 @@ include __DIR__ . '/../footer.php';
 
     // Các hàm hỗ trợ cho công việc sửa chữa
     function toggleCustomJobInput(select, maThietBi) {
-        const divLoiKhac = document.getElementById('custom_job_name_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
-        const hintChiPhi = document.getElementById('cost_hint_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    const divLoiKhac = document.getElementById('custom_job_name_' + maThietBi);
+    const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
+    const inputThoiGian = document.getElementById('job_time_' + maThietBi);
+    const divThoiGian = document.getElementById('time_input_div_' + maThietBi); // THÊM DÒNG NÀY
+    const hintChiPhi = document.getElementById('cost_hint_' + maThietBi);
+    const luaChon = select.options[select.selectedIndex];
 
-        if (luaChon.value === 'custom') {
-            divLoiKhac.style.display = 'block';
-            inputChiPhi.placeholder = 'Nhập chi phí...';
-            hintChiPhi.innerHTML = 'Nhập chi phí cho lỗi khác';
-            inputChiPhi.value = '';
-        } else if (luaChon.value) {
-            divLoiKhac.style.display = 'none';
+    if (luaChon.value === 'custom') {
+        divLoiKhac.style.display = 'block';
+        if (divThoiGian) divThoiGian.style.display = 'block'; // HIỆN INPUT THỜI GIAN
+        inputChiPhi.placeholder = 'Nhập chi phí...';
+        if (inputThoiGian) inputThoiGian.value = '';
+        hintChiPhi.innerHTML = 'Lỗi khác - nhập chi phí và thời gian sửa chữa';
+        inputChiPhi.value = '';
+    } else if (luaChon.value) {
+        divLoiKhac.style.display = 'none';
+        if (divThoiGian) divThoiGian.style.display = 'none'; // ẨN INPUT THỜI GIAN
 
-            const khoangGia = luaChon.getAttribute('data-range');
-            inputChiPhi.value = '';
+        const khoangGia = luaChon.getAttribute('data-range');
+        const thoiGian = luaChon.getAttribute('data-time') || '0';
+        inputChiPhi.value = '';
+        
+        // TỰ ĐỘNG ĐIỀN THỜI GIAN TỪ CSDL
+        if (inputThoiGian) inputThoiGian.value = thoiGian;
 
-            if (khoangGia) {
-                inputChiPhi.placeholder = khoangGia;
-                hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia}`;
-            } else {
-                inputChiPhi.placeholder = 'Nhập chi phí...';
-                hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
-            }
+        if (khoangGia) {
+            inputChiPhi.placeholder = khoangGia;
+            hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia} | Thời gian: ${thoiGian} phút`;
         } else {
-            divLoiKhac.style.display = 'none';
-            inputChiPhi.value = '';
             inputChiPhi.placeholder = 'Nhập chi phí...';
-            hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
+            hintChiPhi.innerHTML = `Nhập chi phí sửa chữa | Thời gian: ${thoiGian} phút`;
         }
+    } else {
+        divLoiKhac.style.display = 'none';
+        if (divThoiGian) divThoiGian.style.display = 'none'; // ẨN INPUT THỜI GIAN
+        inputChiPhi.value = '';
+        if (inputThoiGian) inputThoiGian.value = '';
+        inputChiPhi.placeholder = 'Nhập chi phí...';
+        hintChiPhi.innerHTML = 'Chọn lỗi để xem thông tin';
     }
+}
 
     // Hàm kiểm tra chi phí có nằm trong khoảng giá hay không
     function validateCostInRange(cost, rangeString) {
@@ -1146,122 +1157,141 @@ include __DIR__ . '/../footer.php';
     }
 
     function addRepairJob(maThietBi) {
-        const select = document.getElementById('job_select_' + maThietBi);
-        const inputLoiKhac = document.getElementById('custom_job_input_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    const select = document.getElementById('job_select_' + maThietBi);
+    const inputLoiKhac = document.getElementById('custom_job_input_' + maThietBi);
+    const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
+    const inputThoiGian = document.getElementById('job_time_' + maThietBi);
+    const luaChon = select.options[select.selectedIndex];
 
-        let tenCongViec = '';
-        let chiPhiCongViec = inputChiPhi.value;
-        let khoangGia = '';
+    let tenCongViec = '';
+    let chiPhiCongViec = inputChiPhi.value;
+    let thoiGianCongViec = inputThoiGian ? inputThoiGian.value : 0;
+    let khoangGia = '';
 
-        // Kiểm tra chi phí
-        if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
-            showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
-            inputChiPhi.focus();
+    // Kiểm tra chi phí
+    if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
+        showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
+        inputChiPhi.focus();
+        return;
+    }
+
+    chiPhiCongViec = parseFloat(chiPhiCongViec);
+    thoiGianCongViec = parseFloat(thoiGianCongViec) || 0;
+
+    // KIỂM TRA THỜI GIAN CHO LỖI KHÁC
+    if (luaChon.value === 'custom') {
+        tenCongViec = inputLoiKhac.value.trim();
+        khoangGia = 'Tự nhập';
+        
+        if (!tenCongViec) {
+            showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
+            inputLoiKhac.focus();
             return;
         }
+        
+        // BẮT BUỘC NHẬP THỜI GIAN CHO LỖI KHÁC
+        if (!inputThoiGian || !inputThoiGian.value || parseFloat(inputThoiGian.value) <= 0) {
+            showConfirm('Vui lòng nhập thời gian sửa chữa cho lỗi khác!', 'Thông báo');
+            if (inputThoiGian) inputThoiGian.focus();
+            return;
+        }
+    } else if (luaChon.value) {
+        tenCongViec = luaChon.text.split('(')[0].trim();
+        khoangGia = luaChon.getAttribute('data-range') || 'Không có';
 
-        chiPhiCongViec = parseFloat(chiPhiCongViec);
-
-        if (luaChon.value === 'custom') {
-            tenCongViec = inputLoiKhac.value.trim();
-            khoangGia = 'Tự nhập';
-            if (!tenCongViec) {
-                showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
-                inputLoiKhac.focus();
+        // KIỂM TRA KHOẢNG GIÁ
+        if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
+            if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
+                showConfirm(
+                    'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
+                    'Thông báo',
+                );
                 return;
             }
-        } else if (luaChon.value) {
-            tenCongViec = luaChon.text.split('(')[0].trim();
-            khoangGia = luaChon.getAttribute('data-range') || 'Không có';
-
-            // KIỂM TRA KHOẢNG GIÁ - ĐÂY LÀ PHẦN QUAN TRỌNG
-            if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
-                if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
-                    showConfirm(
-                        'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
-                        'Thông báo',
-                    );
-                    return;
-                }
-            }
-        } else {
-            showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
-            return;
         }
-
-        const maCongViec = 'congviec_' + Date.now();
-        danhSachCongViec[maThietBi].push({
-            id: maCongViec,
-            name: tenCongViec,
-            cost: chiPhiCongViec,
-            priceRange: khoangGia
-        });
-
-        hienThiDanhSachCongViec(maThietBi);
-
-        // Reset form
-        select.value = '';
-        inputLoiKhac.value = '';
-        inputChiPhi.value = '';
-        document.getElementById('custom_job_name_' + maThietBi).style.display = 'none';
-        document.getElementById('cost_hint_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
-
-        showConfirm('Đã thêm công việc vào danh sách', 'Thành công');
+    } else {
+        showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
+        return;
     }
 
-    function hienThiDanhSachCongViec(maThietBi) {
-        const container = document.getElementById('repair_jobs_table_' + maThietBi);
-        const footer = document.getElementById('repair_jobs_footer_' + maThietBi);
-        const cacCongViec = danhSachCongViec[maThietBi];
-        const inputJSON = document.getElementById('danh_sach_cong_viec_json_' + maThietBi);
+    const maCongViec = 'congviec_' + Date.now();
+    danhSachCongViec[maThietBi].push({
+        id: maCongViec,
+        name: tenCongViec,
+        cost: chiPhiCongViec,
+        time: thoiGianCongViec,
+        priceRange: khoangGia
+    });
 
-        if (inputJSON) {
-            inputJSON.value = JSON.stringify(cacCongViec);
-        }
+    hienThiDanhSachCongViec(maThietBi);
 
-        if (cacCongViec.length === 0) {
-            container.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-3 text-muted">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Chưa có công việc nào được thêm
-                    </td>
-                </tr>
-            `;
-            footer.style.display = 'none';
-            return;
-        }
+    // Reset
+    select.value = '';
+    inputLoiKhac.value = '';
+    inputChiPhi.value = '';
+    if (inputThoiGian) inputThoiGian.value = '';
+    document.getElementById('custom_job_name_' + maThietBi).style.display = 'none';
+    document.getElementById('time_input_div_' + maThietBi).style.display = 'none'; // ẨN INPUT THỜI GIAN
+    document.getElementById('cost_hint_' + maThietBi).innerHTML = 'Chọn lỗi để xem thông tin';
 
-        let html = '';
-        let tongChiPhi = 0;
+    showConfirm('Đã thêm công việc vào danh sách', 'Thành công');
+}
 
-        cacCongViec.forEach((congViec, index) => {
-            tongChiPhi += congViec.cost;
-            html += `
-                <tr>
-                    <td class="text-center">${index + 1}</td>
-                    <td>${congViec.name}</td>
-                    <td class="text-center">${congViec.priceRange || 'Không có'}</td>
-                    <td class="text-end">${dinhDangSo(congViec.cost)}</td>
-                    <td class="text-center">
-                        <button type="button" 
-                                class="btn btn-sm btn-outline-danger" 
-                                onclick="xoaCongViec('${maThietBi}', '${congViec.id}')">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
+function hienThiDanhSachCongViec(maThietBi) {
+    const container = document.getElementById('repair_jobs_table_' + maThietBi);
+    const footer = document.getElementById('repair_jobs_footer_' + maThietBi);
+    const cacCongViec = danhSachCongViec[maThietBi];
+    const inputJSON = document.getElementById('danh_sach_cong_viec_json_' + maThietBi);
 
-        container.innerHTML = html;
-        footer.style.display = '';
-        document.getElementById('total_table_' + maThietBi).textContent = dinhDangSo(tongChiPhi);
-
-        capNhatTongBaoGiaDuKien(maThietBi);
+    if (inputJSON) {
+        inputJSON.value = JSON.stringify(cacCongViec);
     }
+
+    if (cacCongViec.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-3 text-muted"> <!-- ĐỔI colspan thành 6 -->
+                    <i class="fas fa-info-circle me-2"></i>
+                    Chưa có công việc nào được thêm
+                </td>
+            </tr>
+        `;
+        footer.style.display = 'none';
+        return;
+    }
+
+    let html = '';
+    let tongChiPhi = 0;
+    let tongThoiGian = 0; // THÊM DÒNG NÀY
+
+    cacCongViec.forEach((congViec, index) => {
+        tongChiPhi += congViec.cost;
+        tongThoiGian += congViec.time; // THÊM DÒNG NÀY
+        html += `
+            <tr>
+                <td class="text-center">${index + 1}</td>
+                <td>${congViec.name}</td>
+                <td class="text-center">${congViec.priceRange || 'Không có'}</td>
+                <td class="text-center text-info fw-bold">${congViec.time} phút</td> <!-- THÊM CỘT NÀY -->
+                <td class="text-end">${dinhDangSo(congViec.cost)}</td>
+                <td class="text-center">
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-danger" 
+                            onclick="xoaCongViec('${maThietBi}', '${congViec.id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    container.innerHTML = html;
+    footer.style.display = '';
+    document.getElementById('total_table_' + maThietBi).textContent = dinhDangSo(tongChiPhi);
+    document.getElementById('total_time_table_' + maThietBi).textContent = tongThoiGian + 'phút'; // THÊM DÒNG NÀY
+
+    capNhatTongBaoGiaDuKien(maThietBi);
+}
 
     function xoaCongViec(maThietBi, maCongViec) {
         if (confirm('Bạn có chắc chắn muốn xóa công việc này?')) {
@@ -1272,19 +1302,25 @@ include __DIR__ . '/../footer.php';
     }
 
     function capNhatTongBaoGiaDuKien(maThietBi) {
-        const inputTong = document.getElementById('total_estimated_cost_' + maThietBi);
-        const hienThiTong = document.getElementById('total_display_' + maThietBi);
-        const cacCongViec = danhSachCongViec[maThietBi];
+    const inputTong = document.getElementById('total_estimated_cost_' + maThietBi);
+    const inputTongThoiGian = document.getElementById('total_estimated_time_' + maThietBi); // THÊM DÒNG NÀY
+    const hienThiTong = document.getElementById('total_display_' + maThietBi);
+    const hienThiTongThoiGian = document.getElementById('total_time_display_' + maThietBi); // THÊM DÒNG NÀY
+    const cacCongViec = danhSachCongViec[maThietBi];
 
-        let tong = 0;
-        cacCongViec.forEach(congViec => {
-            tong += congViec.cost;
-        });
+    let tong = 0;
+    let tongThoiGian = 0; // THÊM DÒNG NÀY
+    
+    cacCongViec.forEach(congViec => {
+        tong += congViec.cost;
+        tongThoiGian += congViec.time; // THÊM DÒNG NÀY
+    });
 
-        inputTong.value = tong;
-        hienThiTong.textContent = dinhDangSo(tong) + ' VND';
-    }
-
+    inputTong.value = tong;
+    if (inputTongThoiGian) inputTongThoiGian.value = tongThoiGian; // THÊM DÒNG NÀY
+    hienThiTong.textContent = dinhDangSo(tong) + ' VND';
+    if (hienThiTongThoiGian) hienThiTongThoiGian.textContent = tongThoiGian + ' phút'; // THÊM DÒNG NÀY
+}
     function dinhDangSo(so) {
         return new Intl.NumberFormat('vi-VN').format(so);
     }
@@ -1362,134 +1398,161 @@ include __DIR__ . '/../footer.php';
             });
         }
     }
-
-    // CÁC HÀM CHO CÔNG VIỆC PHÁT SINH
     function toggleCustomJobInputPhatSinh(select, maThietBi) {
-        const divLoiKhac = document.getElementById('custom_job_name_phatsinh_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
-        const hintChiPhi = document.getElementById('cost_hint_phatsinh_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    const divLoiKhac = document.getElementById('custom_job_name_phatsinh_' + maThietBi);
+    const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
+    const inputThoiGian = document.getElementById('job_time_phatsinh_' + maThietBi);
+    const divThoiGian = document.getElementById('time_input_div_phatsinh_' + maThietBi);
+    const hintChiPhi = document.getElementById('cost_hint_phatsinh_' + maThietBi);
+    const luaChon = select.options[select.selectedIndex];
 
-        if (luaChon.value === 'custom') {
-            divLoiKhac.style.display = 'block';
-            inputChiPhi.placeholder = 'Nhập chi phí...';
-            hintChiPhi.innerHTML = 'Nhập chi phí cho lỗi khác';
-            inputChiPhi.value = '';
-        } else if (luaChon.value) {
-            divLoiKhac.style.display = 'none';
+    if (luaChon.value === 'custom') {
+        divLoiKhac.style.display = 'block';
+        if (divThoiGian) divThoiGian.style.display = 'block';
+        inputChiPhi.placeholder = 'Nhập chi phí...';
+        if (inputThoiGian) inputThoiGian.value = '';
+        hintChiPhi.innerHTML = 'Lỗi phát sinh khác - nhập chi phí và thời gian sửa chữa (phút)';
+        inputChiPhi.value = '';
+    } else if (luaChon.value) {
+        divLoiKhac.style.display = 'none';
+        if (divThoiGian) divThoiGian.style.display = 'none';
 
-            const khoangGia = luaChon.getAttribute('data-range');
-            inputChiPhi.value = '';
+        const khoangGia = luaChon.getAttribute('data-range');
+        const thoiGianPhut = luaChon.getAttribute('data-time') || '0';
+        
+        inputChiPhi.value = '';
+        
+        // HIỆN SỐ PHÚT LUÔN, KHÔNG CHUYỂN ĐỔI
+        if (inputThoiGian) inputThoiGian.value = thoiGianPhut;
 
-            if (khoangGia) {
-                inputChiPhi.placeholder = khoangGia;
-                hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia}`;
-            } else {
-                inputChiPhi.placeholder = 'Nhập chi phí...';
-                hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
-            }
+        if (khoangGia) {
+            inputChiPhi.placeholder = khoangGia;
+            hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia} | Thời gian: ${thoiGianPhut} phút`;
         } else {
-            divLoiKhac.style.display = 'none';
-            inputChiPhi.value = '';
             inputChiPhi.placeholder = 'Nhập chi phí...';
-            hintChiPhi.innerHTML = 'Nhập chi phí sửa chữa';
+            hintChiPhi.innerHTML = `Nhập chi phí sửa chữa | Thời gian: ${thoiGianPhut} phút`;
         }
+    } else {
+        divLoiKhac.style.display = 'none';
+        if (divThoiGian) divThoiGian.style.display = 'none';
+        inputChiPhi.value = '';
+        if (inputThoiGian) inputThoiGian.value = '';
+        inputChiPhi.placeholder = 'Nhập chi phí...';
+        hintChiPhi.innerHTML = 'Chọn lỗi để xem thông tin';
+    }
+}function addRepairJobPhatSinh(maThietBi) {
+    const select = document.getElementById('job_select_phatsinh_' + maThietBi);
+    const inputLoiKhac = document.getElementById('custom_job_input_phatsinh_' + maThietBi);
+    const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
+    const inputThoiGian = document.getElementById('job_time_phatsinh_' + maThietBi);
+    const luaChon = select.options[select.selectedIndex];
+
+    let tenCongViec = '';
+    let chiPhiCongViec = inputChiPhi.value;
+    let thoiGianCongViec = 0;
+    let khoangGia = '';
+
+    if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
+        showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
+        inputChiPhi.focus();
+        return;
     }
 
-    function addRepairJobPhatSinh(maThietBi) {
-        const select = document.getElementById('job_select_phatsinh_' + maThietBi);
-        const inputLoiKhac = document.getElementById('custom_job_input_phatsinh_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    chiPhiCongViec = parseFloat(chiPhiCongViec);
 
-        let tenCongViec = '';
-        let chiPhiCongViec = inputChiPhi.value;
-        let khoangGia = '';
-
-        if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
-            showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
-            inputChiPhi.focus();
+    if (luaChon.value === 'custom') {
+        tenCongViec = inputLoiKhac.value.trim();
+        khoangGia = 'Tự nhập';
+        
+        if (!tenCongViec) {
+            showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
+            inputLoiKhac.focus();
             return;
         }
+        
+        // BÂY GIỜ NHẬP THEO PHÚT
+        if (!inputThoiGian || !inputThoiGian.value || parseFloat(inputThoiGian.value) <= 0) {
+            showConfirm('Vui lòng nhập thời gian sửa chữa cho lỗi phát sinh khác!', 'Thông báo');
+            if (inputThoiGian) inputThoiGian.focus();
+            return;
+        }
+        
+        // GIỮ NGUYÊN PHÚT, KHÔNG CHUYỂN ĐỔI
+        thoiGianCongViec = parseFloat(inputThoiGian.value);
+    } else if (luaChon.value) {
+        tenCongViec = luaChon.text.split('(')[0].trim();
+        khoangGia = luaChon.getAttribute('data-range') || 'Không có';
+        
+        // LẤY TRỰC TIẾP PHÚT TỪ DATABASE
+        thoiGianCongViec = parseFloat(luaChon.getAttribute('data-time')) || 0;
 
-        chiPhiCongViec = parseFloat(chiPhiCongViec);
-
-        if (luaChon.value === 'custom') {
-            tenCongViec = inputLoiKhac.value.trim();
-            khoangGia = 'Tự nhập';
-            if (!tenCongViec) {
-                showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
-                inputLoiKhac.focus();
+        if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
+            if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
+                showConfirm(
+                    'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
+                    'Thông báo',
+                );
                 return;
             }
-        } else if (luaChon.value) {
-            tenCongViec = luaChon.text.split('(')[0].trim();
-            khoangGia = luaChon.getAttribute('data-range') || 'Không có';
-
-            // KIỂM TRA KHOẢNG GIÁ CHO CÔNG VIỆC PHÁT SINH
-            if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
-                if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
-                    showConfirm(
-                        'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
-                        'Thông báo',
-                    );
-                    return;
-                }
-            }
-        } else {
-            showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
-            return;
         }
-
-        const maCongViec = 'congviec_phatsinh_' + Date.now();
-        danhSachCongViecPhatSinh[maThietBi].push({
-            id: maCongViec,
-            name: tenCongViec,
-            cost: chiPhiCongViec,
-            priceRange: khoangGia
-        });
-
-        hienThiDanhSachCongViecPhatSinh(maThietBi);
-
-        // Reset form
-        select.value = '';
-        inputLoiKhac.value = '';
-        inputChiPhi.value = '';
-        document.getElementById('custom_job_name_phatsinh_' + maThietBi).style.display = 'none';
-        document.getElementById('cost_hint_phatsinh_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
-
-        showConfirm('Đã thêm công việc vào danh sách phát sinh', 'Thành công');
+    } else {
+        showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
+        return;
     }
 
-    function hienThiDanhSachCongViecPhatSinh(maThietBi) {
-        const container = document.getElementById('repair_jobs_phatsinh_table_' + maThietBi);
-        const footer = document.getElementById('repair_jobs_phatsinh_footer_' + maThietBi);
-        const cacCongViec = danhSachCongViecPhatSinh[maThietBi];
+    const maCongViec = 'congviec_phatsinh_' + Date.now();
+    danhSachCongViecPhatSinh[maThietBi].push({
+        id: maCongViec,
+        name: tenCongViec,
+        cost: chiPhiCongViec,
+        time: thoiGianCongViec, // LƯU THEO PHÚT
+        priceRange: khoangGia
+    });
 
-        if (cacCongViec.length === 0) {
-            container.innerHTML = `
+    hienThiDanhSachCongViecPhatSinh(maThietBi);
+
+    // Reset
+    select.value = '';
+    inputLoiKhac.value = '';
+    inputChiPhi.value = '';
+    if (inputThoiGian) inputThoiGian.value = '';
+    document.getElementById('custom_job_name_phatsinh_' + maThietBi).style.display = 'none';
+    document.getElementById('time_input_div_phatsinh_' + maThietBi).style.display = 'none';
+    document.getElementById('cost_hint_phatsinh_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
+
+    showConfirm('Đã thêm công việc vào danh sách phát sinh', 'Thành công');
+}function hienThiDanhSachCongViecPhatSinh(maThietBi) {
+    const container = document.getElementById('repair_jobs_phatsinh_table_' + maThietBi);
+    const footer = document.getElementById('repair_jobs_phatsinh_footer_' + maThietBi);
+    const cacCongViec = danhSachCongViecPhatSinh[maThietBi];
+
+    if (cacCongViec.length === 0) {
+        container.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center py-3 text-muted">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Chưa có công việc nào được thêm
+                <td colspan="6" class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox me-2"></i>Chưa có công việc nào
                 </td>
             </tr>
         `;
-            if (footer) footer.style.display = 'none';
-            return;
-        }
+        if (footer) footer.style.display = 'none';
+        return;
+    }
 
-        let html = '';
-        let tongChiPhi = 0;
+    let html = '';
+    let tongChiPhi = 0;
+    let tongThoiGianPhut = 0;
 
-        cacCongViec.forEach((congViec, index) => {
-            tongChiPhi += congViec.cost;
-            html += `
+    cacCongViec.forEach((congViec, index) => {
+        tongChiPhi += congViec.cost;
+        tongThoiGianPhut += congViec.time;
+        
+        html += `
             <tr>
                 <td class="text-center">${index + 1}</td>
                 <td>${congViec.name}</td>
                 <td class="text-center">${congViec.priceRange || 'Không có'}</td>
-                <td class="text-end">${dinhDangSo(congViec.cost)}</td>
+                <td class="text-center text-info fw-bold">${congViec.time} phút</td>
+                <td class="text-end text-danger fw-bold">${dinhDangSo(congViec.cost)} ₫</td>
                 <td class="text-center">
                     <button type="button" 
                             class="btn btn-sm btn-outline-danger" 
@@ -1499,14 +1562,17 @@ include __DIR__ . '/../footer.php';
                 </td>
             </tr>
         `;
-        });
+    });
 
-        container.innerHTML = html;
-        if (footer) {
-            footer.style.display = '';
-            document.getElementById('total_phatsinh_table_' + maThietBi).textContent = dinhDangSo(tongChiPhi);
-        }
+    container.innerHTML = html;
+    if (footer) {
+        footer.style.display = 'table-footer-group';
+        document.getElementById('total_phatsinh_table_' + maThietBi).textContent = dinhDangSo(tongChiPhi) + ' VND';
+        document.getElementById('total_time_phatsinh_table_' + maThietBi).textContent = tongThoiGianPhut + ' phút';
     }
+
+    capNhatTongBaoGiaPhatSinh(maThietBi);
+}
 
     function xoaCongViecPhatSinh(maThietBi, maCongViec) {
         if (confirm('Bạn có chắc chắn muốn xóa công việc phát sinh này?')) {
@@ -1518,52 +1584,63 @@ include __DIR__ . '/../footer.php';
 
     // Hàm lưu công việc phát sinh bằng AJAX
     async function saveAdditionalJobs(maCTDon) {
-        const danhSachCongViecJSON = JSON.stringify(danhSachCongViecPhatSinh[maCTDon] || []);
+    const danhSachCongViec = danhSachCongViecPhatSinh[maCTDon] || [];
+    const danhSachCongViecJSON = JSON.stringify(danhSachCongViec);
 
-        if (danhSachCongViecPhatSinh[maCTDon].length === 0) {
-            showConfirm('Vui lòng thêm ít nhất một công việc phát sinh!', 'Thông báo');
-            return;
-        }
+    // DEBUG: Kiểm tra dữ liệu có thời gian không
+    console.log('DANH SÁCH CÔNG VIỆC PHÁT SINH:');
+    danhSachCongViec.forEach((congViec, index) => {
+        console.log(`Công việc ${index + 1}:`, congViec);
+        console.log(`- Tên: ${congViec.name}`);
+        console.log(`- Chi phí: ${congViec.cost}`);
+        console.log(`- Thời gian: ${congViec.time} phút`);
+        console.log(`- Có trường time: ${'time' in congViec}`);
+    });
 
-        if (!confirm(`Bạn có chắc chắn muốn lưu ${danhSachCongViecPhatSinh[maCTDon].length} công việc phát sinh?`)) {
-            return;
-        }
+    if (danhSachCongViec.length === 0) {
+        showConfirm('Vui lòng thêm ít nhất một công việc phát sinh!', 'Thông báo');
+        return;
+    }
 
-        const button = document.querySelector(`[onclick="saveAdditionalJobs('${maCTDon}')"]`);
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...';
-        button.disabled = true;
+    if (!confirm(`Bạn có chắc chắn muốn lưu ${danhSachCongViec.length} công việc phát sinh?`)) {
+        return;
+    }
 
-        try {
-            const formData = new FormData();
-            formData.append('action', 'save_additional_jobs');
-            formData.append('maDon', '<?php echo $maDon; ?>');
-            formData.append('maCTDon', maCTDon);
-            formData.append('danh_sach_cong_viec_phat_sinh_json', danhSachCongViecJSON);
+    const button = document.querySelector(`[onclick="saveAdditionalJobs('${maCTDon}')"]`);
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...';
+    button.disabled = true;
 
-            const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
-                method: 'POST',
-                body: formData
-            });
+    try {
+        const formData = new FormData();
+        formData.append('action', 'save_additional_jobs');
+        formData.append('maDon', '<?php echo $maDon; ?>');
+        formData.append('maCTDon', maCTDon);
+        formData.append('danh_sach_cong_viec_phat_sinh_json', danhSachCongViecJSON);
 
-            const result = await response.json();
+        const response = await fetch('<?php echo url("controllers/ajax_service.php"); ?>', {
+            method: 'POST',
+            body: formData
+        });
 
-            if (result.success) {
-                showConfirm(result.message, 'Thành công');
-                // Reload sau 1.5 giây
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            } else {
-                showConfirm(result.message, 'Lỗi');
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }
+        const result = await response.json();
+        console.log('Kết quả từ server:', result); // DEBUG
 
-        } catch (error) {
-            handleError(error);
+        if (result.success) {
+            showConfirm(result.message, 'Thành công');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showConfirm(result.message, 'Lỗi');
             button.innerHTML = originalText;
             button.disabled = false;
         }
+
+    } catch (error) {
+        handleError(error);
+        button.innerHTML = originalText;
+        button.disabled = false;
     }
+}
 </script>

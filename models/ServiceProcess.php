@@ -352,8 +352,8 @@ class ServiceProcess
             // 2. Lưu danh sách công việc chi tiết
             if (!empty($danhSachCongViec)) {
                 $sqlJob = "INSERT INTO chitietsuachua 
-                          (maCTDon, maDon, loiSuaCHua, chiPhi,loai) 
-                          VALUES (?, ?, ?, ?,'Báo giá')";
+                          (maCTDon, maDon, loiSuaCHua, chiPhi,loai,thoigian) 
+                          VALUES (?, ?, ?, ?,'Báo giá',?)";
 
                 $stmtJob = $this->db->prepare($sqlJob);
 
@@ -362,7 +362,8 @@ class ServiceProcess
                         $maCTDon,
                         $maDon,
                         $congViec['name'],
-                        $congViec['cost']
+                        $congViec['cost'],
+                        $congViec['time']
                     ]);
                 }
             } else {
@@ -399,18 +400,18 @@ class ServiceProcess
         }
     }
     //Thêm công việc sửa chữa phát sinh
-    public function themCVSuaChua($maDon, $maCTDon, $tenCongViec, $chiPhi, $maKTV)
+    public function themCVSuaChua($maDon, $maCTDon, $tenCongViec, $chiPhi, $maKTV,$thoiGianGio)
     {
         $this->db->beginTransaction();
 
         try {
             // 1. Thêm công việc sửa chữa phát sinh
             $sql = "INSERT INTO chitietsuachua 
-                    (maCTDon, maDon, loiSuaCHua, chiPhi,loai) 
-                    VALUES (?, ?, ?, ?,'Phát sinh')";
+                    (maCTDon, maDon, loiSuaCHua, chiPhi,loai,thoigian) 
+                    VALUES (?, ?, ?, ?,'Phát sinh',?)";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$maCTDon, $maDon, $tenCongViec, $chiPhi]);
+            $stmt->execute([$maCTDon, $maDon, $tenCongViec, $chiPhi,$thoiGianGio]);
 
             // 2. Cập nhật tổng chi phí trong chitietsuachua (nếu cần)
             // Lấy tổng chi phí hiện tại
@@ -485,12 +486,12 @@ class ServiceProcess
     public function getPriceDetail($maThietBi)
     {
         try {
-            $query = "SELECT 
+            echo 'hi'. $maThietBi;
+             $query = "SELECT 
             pl.maGia,
                         pl.maThietBi,
                         pl.chitietloi,
-                        pl.khoangGia,
-                        pl.ghiChu
+                        pl.khoangGia
                      FROM banggiaSC pl 
                      WHERE pl.maThietBi = ? 
                      ORDER BY pl.maGia ASC";

@@ -3,6 +3,11 @@ if (!isset($ctdd) || !isset($chiTietGia))
     return;
 ?>
 
+<!-- FORM ẨN ĐỂ LƯU CÔNG VIỆC PHÁT SINH -->
+<form id="save_additional_jobs_form_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
+    <input type="hidden" name="danh_sach_cong_viec_phat_sinh_json" id="danh_sach_cong_viec_phat_sinh_json_<?php echo $ctdd['maCTDon']; ?>">
+</form>
+
 <div class="card border-primary mb-3">
     <div class="card-header bg-primary text-white py-2">
         <h6 class="mb-0">
@@ -19,10 +24,12 @@ if (!isset($ctdd) || !isset($chiTietGia))
                 <?php if (!empty($chiTietGia)): ?>
                     <?php foreach ($chiTietGia as $congViec): ?>
                         <option value="<?php echo htmlspecialchars($congViec['chitietloi']); ?>"
-                            data-range="<?php echo htmlspecialchars($congViec['khoangGia'] ?? ''); ?>">
+                            data-range="<?php echo htmlspecialchars($congViec['khoangGia'] ?? ''); ?>"
+                            data-time="<?php echo isset($congViec['thoigiansuachua']) ? (int)$congViec['thoigiansuachua'] : 0; ?>">
                             <?php echo htmlspecialchars($congViec['chitietloi']); ?>
                             <?php if (!empty($congViec['khoangGia'])): ?>
-                                (<?php echo htmlspecialchars($congViec['khoangGia']); ?>)
+                                (<?php echo htmlspecialchars($congViec['khoangGia']); ?> - 
+                                <?php echo isset($congViec['thoigiansuachua']) ? (int)$congViec['thoigiansuachua'] : 0; ?> phút)
                             <?php endif; ?>
                         </option>
                     <?php endforeach; ?>
@@ -48,6 +55,16 @@ if (!isset($ctdd) || !isset($chiTietGia))
             </div>
         </div>
 
+        <!-- THÊM INPUT THỜI GIAN CHO PHÁT SINH -->
+        <div class="mb-3" id="time_input_div_phatsinh_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
+            <label class="form-label fw-semibold">Thời gian sửa chữa (phút):</label>
+            <input type="number" class="form-control" id="job_time_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
+                placeholder="Nhập thời gian dự kiến (phút)" min="1" step="1" required>
+            <div class="form-text">
+                <i class="fas fa-clock me-1"></i>Thời gian ước tính để hoàn thành công việc (bắt buộc cho lỗi phát sinh khác) - nhập theo phút
+            </div>
+        </div>
+
         <!-- NÚT THÊM CÔNG VIỆC -->
         <button type="button" class="btn btn-primary w-100"
             onclick="addRepairJobPhatSinh('<?php echo $ctdd['maCTDon']; ?>')">
@@ -68,34 +85,52 @@ if (!isset($ctdd) || !isset($chiTietGia))
             <table class="table table-bordered mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th width="5%">STT</th>
-                        <th width="50%">Công việc</th>
-                        <th width="20%">Khoảng giá</th>
-                        <th width="15%">Chi phí (VND)</th>
-                        <th width="10%">Thao tác</th>
+                        <th width="5%" class="text-center">#</th>
+                        <th width="45%">Công việc / Lỗi</th>
+                        <th width="15%" class="text-center">Khoảng giá</th>
+                        <th width="15%" class="text-center">Thời gian</th>
+                        <th width="15%" class="text-end">Chi phí</th>
+                        <th width="5%" class="text-center">Xóa</th>
                     </tr>
                 </thead>
                 <tbody id="repair_jobs_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">
                     <tr>
-                        <td colspan="5" class="text-center py-3 text-muted">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Chưa có công việc nào được thêm
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fas fa-inbox me-2"></i>Chưa có công việc nào
                         </td>
                     </tr>
                 </tbody>
-                <tfoot id="repair_jobs_phatsinh_footer_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
-                    <tr class="table-secondary">
-                        <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
-                        <td class="text-end fw-bold" id="total_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0</td>
+                <tfoot id="repair_jobs_phatsinh_footer_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
+                    <tr class="table-success fw-bold">
+                        <td colspan="3" class="text-end">TỔNG CỘNG:</td>
+                        <td class="text-center" id="total_time_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0 phút</td>
+                        <td class="text-end" id="total_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0 VND</td>
                         <td></td>
                     </tr>
                 </tfoot>
             </table>
-            <div align="center" style="margin:10px;">
-                <button type="button" class="btn btn-success btn-lg"></button>
-                    <i class="fas fa-save me-2"></i>Lưu các công việc phát sinh
-                </button>
+        </div>
+        
+        <!-- TỔNG KẾT PHÁT SINH -->
+        <div class="row g-3 mt-4 px-3">
+            <div class="col-md-6">
+                <div class="text-center p-3 bg-light rounded border">
+                    <h5 class="text-info mb-1">Tổng thời gian phát sinh</h5>
+                    <h3 class="text-info fw-bold mb-0" id="total_time_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 phút</h3>
+                </div>
             </div>
+            <div class="col-md-6">
+                <div class="text-center p-3 bg-light rounded border">
+                    <h5 class="text-primary mb-1">Tổng chi phí phát sinh</h5>
+                    <h3 class="text-primary fw-bold mb-0" id="total_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</h3>
+                </div>
+            </div>
+        </div>
+
+        <div align="center" class="mt-4 pb-3">
+            <button type="button" class="btn btn-success btn-lg px-5" onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">
+                <i class="fas fa-save me-2"></i>Lưu các công việc phát sinh
+            </button>
         </div>
     </div>
 </div>

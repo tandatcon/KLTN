@@ -1,29 +1,31 @@
 <?php
-// models/connect.php
-class Database {
-    private static $instance = null;
-    private $conn;
+class Database
+{
+    private $host = 'localhost';
+    private $db_name = 'techcarepro';
+    private $username = 'root';
+    private $password = '';
+    public $conn;
 
-    private $host = "localhost";
-    private $user = "root";
-    private $pass = "";
-    private $db   = "website";
-
-    private function __construct() {
-        $this->conn = new mysqli($this->host, $this->user, $this->pass, $this->db);
-        if ($this->conn->connect_error) {
-            die("Kết nối database thất bại: " . $this->conn->connect_error);
+    public function getConnection()
+    {
+        $this->conn = null;
+        try {
+            $this->conn = new PDO(
+                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8",
+                $this->username, 
+                $this->password
+            );
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Test connection
+            $stmt = $this->conn->query("SELECT 1");
+            // echo "Kết nối database thành công!";
+            
+        } catch(PDOException $exception) {
+            echo "Lỗi kết nối database: " . $exception->getMessage();
         }
-    }
-
-    public static function getInstance() {
-        if (!self::$instance) {
-            self::$instance = new Database();
-        }
-        return self::$instance;
-    }
-
-    public function getConnection() {
         return $this->conn;
     }
 }
+?>

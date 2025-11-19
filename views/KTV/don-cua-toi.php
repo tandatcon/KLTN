@@ -97,8 +97,21 @@ if ($statusFilter !== 'all') {
                                         <div class="fw-bold"><?php  echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?></div>
                                     </td>
                                     <td>
-                                        <?php echo htmlspecialchars($order['diemhen'] ?? 'N/A'); ?>
-                                    </td>
+    <?php 
+    $address = $order['diemhen'] ?? 'N/A';
+    if ($address !== 'N/A' && !empty($address)) {
+        $encodedAddress = urlencode($address);
+        echo 'Click mở chỉ đường -> <a href="https://www.google.com/maps/dir/?api=1&destination=' . $encodedAddress . '" 
+                 target="_blank" class="text-decoration-none" 
+                 title="Chỉ đường đến ' . htmlspecialchars($address) . '">
+                <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                ' . htmlspecialchars($address) . '
+              </a>';
+    } else {
+        echo 'N/A';
+    }
+    ?>
+</td>
                                     <td>
                                         <?php if ($order['noiSuaChua'] == 1): ?>
                                             <span class="badge bg-success">Cửa hàng</span>

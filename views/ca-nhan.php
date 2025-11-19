@@ -223,7 +223,7 @@ $currentAddress = $customerInfo['diaChi'] ?? '';
                                                 <div class="address-select-container mb-3">
                                                     <div class="row g-2">
                                                         <div class="col-md-4">
-                                                            <select class="form-select input-gray" id="province" name="province" disabled>
+                                                            <select class="form-select input-gray" id="province" name="province">
                                                                 <option value="79">TP Hồ Chí Minh</option>
                                                             </select>
                                                         </div>
@@ -509,9 +509,8 @@ function initAddressAPI() {
         if (ward && ward.selectedIndex > 0) addressParts.push(ward.options[ward.selectedIndex].textContent);
         if (district.selectedIndex > 0) addressParts.push(district.options[district.selectedIndex].textContent);
         
-        // KHÔNG thêm tỉnh/thành vì đã mặc định là TP HCM
-
-        const fullAddress = addressParts.join(', ');
+    const fullAddress = addressParts.length > 0 ? addressParts.join(', ') + ', TP Hồ Chí Minh'
+    : '';
 
         if (fullAddress) {
             addressDisplay.innerHTML = `<i class="fas fa-map-marker-alt me-2 text-primary"></i><span>${fullAddress}</span>`;

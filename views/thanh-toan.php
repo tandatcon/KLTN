@@ -1,5 +1,6 @@
 <?php
-error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+ob_start();
+//error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 if (!defined('BASE_URL')) {
     require_once __DIR__ . '/../config.php';
     require_once __DIR__ . '/../helpers.php';
@@ -8,11 +9,13 @@ if (!defined('BASE_URL')) {
 $pageTitle = "Thanh Toán - TechCare";
 include VIEWS_PATH . '/header.php';
 
-require_once __DIR__ . '/../function/donhang.php';
-require_once __DIR__ . '/../function/quytrinh.php';
+// Sử dụng Model và Controller mới
+require_once __DIR__ . '/../models/mOrders.php';
+require_once __DIR__ . '/../controllers/cOrders.php';
+require_once __DIR__ . '/../controllers/cPayment.php';
 
-$donHangService = new DonHangService($db);
-$quyTrinhService = new QuyTrinhService($db);
+$ordersController = new cOrders();
+$paymentController = new cPayment();
 
 $orderId = $_GET['id'] ?? 0;
 $maKH = $_SESSION['user_id'] ?? null;
@@ -28,7 +31,7 @@ if (!$orderId) {
     exit();
 }
 
-$order = $donHangService->getOrderDetail($orderId, $maKH);
+$order = $ordersController->getOrderDetail($orderId, $maKH);
 if (!$order) {
     $_SESSION['error'] = "Đơn hàng không tồn tại hoặc bạn không có quyền truy cập!";
     header('Location: ' . url('don-cua-toi'));
@@ -42,9 +45,9 @@ if ($order['thanhToan'] == 1) {
     exit();
 }
 
-$userInfo = $donHangService->getCustomerInfo($maKH);
-$devices = $donHangService->getOrderDevicesDetail($orderId);
-$technicianInfo = $donHangService->getTechnicianInfo($order['maKTV']);
+$userInfo = $ordersController->getCustomerInfo($maKH);
+$devices = $ordersController->getOrderDevicesDetail($orderId);
+$technicianInfo = $ordersController->getTechnicianInfo($order['maKTV']);
 
 // Tính tổng chi phí và phân loại
 $totalCost = 0;
@@ -54,7 +57,7 @@ $deviceTotals = [];
 foreach ($devices as $device) {
     $maCTDon = $device['maCTDon'] ?? null;
     if ($maCTDon) {
-        $repairJobs = $donHangService->getDeviceRepairDetails($orderId, $maCTDon);
+        $repairJobs = $ordersController->getDeviceRepairDetails($orderId, $maCTDon);
         $deviceRepairJobs[$maCTDon] = $repairJobs;
 
         $deviceTotal = 0;
@@ -69,32 +72,35 @@ foreach ($devices as $device) {
 // Xử lý thanh toán
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['thanh_toan'])) {
     $diemSuDung = intval($_POST['diem_su_dung'] ?? 0);
+    $paymentMethod = $_POST['payment_method'] ?? 'vnpay';
 
     // Lấy điểm tích lũy hiện tại của khách hàng
-    $diemHienCo = $donHangService->getDiemTichLuy($maKH);
+    $diemHienCo = $ordersController->getDiemTichLuy($maKH);
 
     if ($diemSuDung > $diemHienCo) {
         $_SESSION['error'] = "Số điểm sử dụng vượt quá điểm tích lũy hiện có!";
     } else {
-        // Tính tiền giảm giá từ điểm
-        $tienGiamGia = $diemSuDung * 1000; // 1 điểm = 1,000 VND
-        $tienThanhToan = max(0, $totalCost - $tienGiamGia);
+        // Xử lý thanh toán qua VNPay
+        $result = $paymentController->processVNPayPayment($orderId, $totalCost, $maKH, $diemSuDung);
 
-        // Thực hiện thanh toán
-        $result = $donHangService->thucHienThanhToan($orderId, $tienThanhToan, $diemSuDung, $maKH);
-
-        if ($result) {
-            $_SESSION['success'] = "Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.";
-            header('Location: ' . url('order-detail?id=' . $orderId));
-            exit();
+        if ($result['success']) {
+            if (isset($result['free_payment']) && $result['free_payment']) {
+                $_SESSION['success'] = "Thanh toán thành công bằng điểm tích lũy!";
+                header('Location: ' . url('order-detail?id=' . $orderId));
+                exit();
+            } elseif (isset($result['payment_url'])) {
+                // Chuyển hướng đến VNPay
+                header('Location: ' . $result['payment_url']);
+                exit();
+            }
         } else {
-            $_SESSION['error'] = "Có lỗi xảy ra khi thanh toán. Vui lòng thử lại!";
+            $_SESSION['error'] = $result['error'] ?? "Có lỗi xảy ra khi thanh toán. Vui lòng thử lại!";
         }
     }
 }
 
 // Lấy điểm tích lũy hiện tại
-$diemHienCo = $donHangService->getDiemTichLuy($maKH);
+$diemHienCo = $ordersController->getDiemTichLuy($maKH);
 $diemToiDaCoTheSuDung = min($diemHienCo, floor($totalCost / 1000));
 $diemNhanDuoc = round($totalCost * 0.015 / 1000);
 ?>
@@ -159,7 +165,6 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
         padding: 16px 8px !important;
         border-bottom: 2px solid #bbdefb !important;
     }
-
 
     .service-price {
         font-weight: 500;
@@ -266,6 +271,34 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
         font-size: 13px;
         line-height: 1.4;
     }
+
+    .payment-method {
+        border: 2px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .payment-method:hover {
+        border-color: #ee4d2d;
+    }
+
+    .payment-method.selected {
+        border-color: #ee4d2d;
+        background-color: #fff5f5;
+    }
+
+    .payment-method input[type="radio"] {
+        margin-right: 10px;
+    }
+
+    .payment-icon {
+        font-size: 24px;
+        margin-right: 10px;
+        color: #ee4d2d;
+    }
 </style>
 
 <main class="payment-container py-3">
@@ -348,7 +381,7 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
                             <?php if (!empty($repairJobs)): ?>
                                 <?php foreach ($repairJobs as $idx => $job):
                                     $loai = $job['loai'] ?? 'Báo giá';
-                                    $loaiClass = $loai == 'Phát sinh' ? 'loai-phatsinh' : 'loai-baogia';
+                                    $loaiClass = $loai == 'Phát sinh' ? 'text-danger' : 'text-primary';
                                     ?>
                                     <tr>
                                         <td class="text-center"><?= $stt++ ?></td>
@@ -395,6 +428,45 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- Phương thức thanh toán -->
+        <div class="shopee-style">
+            <div class="section-title">Phương thức thanh toán</div>
+            
+            <div class="payment-method selected" onclick="selectPaymentMethod('vnpay')">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="payment_method" 
+                           id="vnpay" value="vnpay" checked>
+                    <label class="form-check-label w-100" for="vnpay">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-credit-card payment-icon"></i>
+                            <div>
+                                <div class="fw-bold">Thanh toán qua VNPay</div>
+                                <div class="text-muted small">Thanh toán an toàn qua cổng VNPay</div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <?php if ($diemHienCo >= $totalCost / 1000): ?>
+            <div class="payment-method" onclick="selectPaymentMethod('points_only')">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="payment_method" 
+                           id="points_only" value="points_only">
+                    <label class="form-check-label w-100" for="points_only">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-coins payment-icon"></i>
+                            <div>
+                                <div class="fw-bold">Thanh toán bằng điểm tích lũy</div>
+                                <div class="text-muted small">Sử dụng <?= number_format(ceil($totalCost / 1000)) ?> điểm để thanh toán toàn bộ</div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Điểm tích lũy -->
@@ -455,7 +527,8 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
         <!-- Nút thanh toán -->
         <div class="shopee-style">
             <button type="submit" name="thanh_toan" class="btn-payment">
-                THANH TOÁN
+                <i class="fas fa-credit-card me-2"></i>
+                THANH TOÁN VNPAY
             </button>
         </div>
     </form>
@@ -489,6 +562,27 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
 
             // Reset final amount
             document.getElementById('final-amount').textContent = totalCost.toLocaleString() + 'đ';
+        }
+    }
+
+    function selectPaymentMethod(method) {
+        // Remove selected class from all payment methods
+        document.querySelectorAll('.payment-method').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked method
+        event.currentTarget.classList.add('selected');
+        
+        // Update radio button
+        document.getElementById(method).checked = true;
+        
+        // Update button text
+        const button = document.querySelector('.btn-payment');
+        if (method === 'points_only') {
+            button.innerHTML = '<i class="fas fa-coins me-2"></i> THANH TOÁN BẰNG ĐIỂM';
+        } else {
+            button.innerHTML = '<i class="fas fa-credit-card me-2"></i> THANH TOÁN VNPAY';
         }
     }
 

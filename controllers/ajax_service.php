@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $danhSachCongViec = json_decode($danhSachCongViecJSON, true);
                 $quyetdinh = $_POST['decision'];
                 $lydo = $_POST['reason'] ?? '';
+                //$time = $_POST['time'];
 
                 if (empty($chanDoan)) {
                     echo json_encode(['success' => false, 'message' => 'Vui lòng nhập chẩn đoán!']);
@@ -49,11 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $danhSachCongViec,
                     $quyetdinh,
                     $lydo
+                    //$time
                 );
 
                 if ($ketQua) {
                     echo json_encode([
-                        'success' => true, 
+                        'success' => true,
                         'message' => 'Đã thêm chẩn đoán và báo giá thành công!',
                         'quyetDinhSC' => $quyetdinh
                     ]);
@@ -124,39 +126,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     echo json_encode(['success' => false, 'message' => 'Lỗi di chuyển file']);
                 }
                 break;
-                case 'save_additional_jobs':
-                    $danhSachCongViecJSON = $_POST['danh_sach_cong_viec_phat_sinh_json'] ?? '[]';
-                    $danhSachCongViec = json_decode($danhSachCongViecJSON, true);
-                
-                    if (empty($danhSachCongViec)) {
-                        echo json_encode(['success' => false, 'message' => 'Vui lòng thêm ít nhất một công việc phát sinh!']);
-                        exit();
-                    }
-                
-                    $ketQua = true;
-                    $soCongViec = 0;
-                    
-                    foreach ($danhSachCongViec as $congViec) {
-                        $ketQua = $serviceProcessModel->themCVSuaChua(
-                            $maDon,
-                            $maCTDon,
-                            $congViec['name'],
-                            $congViec['cost'],
-                            $_SESSION['user_id']
-                        );
-                        if ($ketQua) {
-                            $soCongViec++;
-                        } else {
-                            break;
-                        }
-                    }
-                
-                    if ($ketQua && $soCongViec > 0) {
-                        echo json_encode(['success' => true, 'message' => "Đã lưu $soCongViec công việc phát sinh thành công!"]);
+            case 'save_additional_jobs':
+                $danhSachCongViecJSON = $_POST['danh_sach_cong_viec_phat_sinh_json'] ?? '[]';
+                $danhSachCongViec = json_decode($danhSachCongViecJSON, true);
+
+                // DEBUG CHI TIẾT CẤU TRÚC DỮ LIỆU
+                error_log("=== DEBUG CẤU TRÚC DỮ LIỆU ===");
+                error_log("Toàn bộ mảng: " . print_r($danhSachCongViec, true));
+
+                foreach ($danhSachCongViec as $index => $congViec) {
+                    error_log("Công việc $index:");
+                    error_log("  - Keys có trong mảng: " . implode(', ', array_keys($congViec)));
+                    error_log("  - Toàn bộ công việc: " . print_r($congViec, true));
+                }
+
+                if (empty($danhSachCongViec)) {
+                    echo json_encode(['success' => false, 'message' => 'Vui lòng thêm ít nhất một công việc phát sinh!']);
+                    exit();
+                }
+
+                $ketQua = true;
+                $soCongViec = 0;
+
+                foreach ($danhSachCongViec as $congViec) {
+                    // THỬ CÁC TÊN TRƯỜNG KHÁC NHAU
+                    $thoiGianPhut = 0;
+                    if (isset($congViec['time'])) {
+                        $thoiGianPhut = floatval($congViec['time']);
+                        error_log("Lấy thời gian từ 'time': " . $thoiGianPhut);
+                    } elseif (isset($congViec['thoigian'])) {
+                        $thoiGianPhut = floatval($congViec['thoigian']);
+                        error_log("Lấy thời gian từ 'thoigian': " . $thoiGianPhut);
                     } else {
-                        echo json_encode(['success' => false, 'message' => 'Không thể lưu công việc phát sinh!']);
+                        error_log("KHÔNG TÌM THẤY TRƯỜNG THỜI GIAN!");
+                        error_log("Các trường có sẵn: " . implode(', ', array_keys($congViec)));
                     }
-                    break;
+
+                    $ketQua = $serviceProcessModel->themCVSuaChua(
+                        $maDon,
+                        $maCTDon,
+                        $congViec['name'],
+                        $congViec['cost'],
+                        $_SESSION['user_id'],
+                        $thoiGianPhut
+                    );
+
+                    if ($ketQua) {
+                        $soCongViec++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if ($ketQua && $soCongViec > 0) {
+                    echo json_encode(['success' => true, 'message' => "Đã lưu $soCongViec công việc phát sinh thành công!"]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Không thể lưu công việc phát sinh!']);
+                }
+                break;
 
             default:
                 echo json_encode(['success' => false, 'message' => 'Action không hợp lệ']);

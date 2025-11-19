@@ -79,20 +79,25 @@ try {
         ];
     }
 
-    // Thêm đơn dịch vụ tại cửa hàng - sử dụng hàm như code cũ
+    // DEBUG: Log danh sách thiết bị
+    error_log("📦 Danh sách thiết bị chuẩn bị insert:");
+    foreach ($danhSachThietBi as $index => $thietBi) {
+        error_log("   Thiết bị " . ($index + 1) . ": " . print_r($thietBi, true));
+    }
+
+    // Thêm đơn dịch vụ tại cửa hàng - SỬA THỨ TỰ THAM SỐ
     $maDon = $dichVuService->themDonDichVuTaiCuaHang(
         $customer_id,           // maKH
         $booking_date,          // ngayDat
-        null,                   // maKhungGio (không cần vì tại cửa hàng)
-        $customer_address,      // noiSuaChua (địa chỉ cửa hàng)
+        1,                      // noiSuaChua (1 = tại cửa hàng)
         $danhSachThietBi,       // danhSachThietBi
-        $problem_description    // ghiChu
+        $problem_description,   // ghiChu
+        $_SESSION['user_id']    // maNhanVienTaoDon
     );
 
-    if ($maDon) {
-        // Cập nhật thông tin đơn tại cửa hàng (nếu cần)
-        //$this->capNhatDonTaiCuaHang($maDon, $_SESSION['user_id']);
+    error_log("✅ Kết quả tạo đơn: " . ($maDon ? "Thành công - Mã đơn #$maDon" : "Thất bại"));
 
+    if ($maDon) {
         // Xóa session customer_info sau khi đăng ký thành công
         unset($_SESSION['customer_info']);
         unset($_SESSION['search_phone']);
@@ -105,7 +110,7 @@ try {
     }
 
 } catch (Exception $e) {
-    error_log("Lỗi khi xử lý đăng ký dịch vụ: " . $e->getMessage());
+    error_log("❌ Lỗi khi xử lý đăng ký dịch vụ: " . $e->getMessage());
     $_SESSION['error'] = "Lỗi hệ thống, vui lòng thử lại: " . $e->getMessage();
     header("Location: " . url('employee/them-dich-vu'));
     exit;

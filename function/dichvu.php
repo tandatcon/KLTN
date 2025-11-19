@@ -660,181 +660,161 @@ class DichVuService
         }
     }
     public function themDonDichVuTaiCuaHang($maKH, $ngayDat, $noiSuaChua, $danhSachThietBi, $ghiChu = null, $maNhanVienTaoDon = null)
-    {
-        try {
-            // Bắt đầu transaction
-            $this->db->beginTransaction();
+{
+    try {
+        // Bắt đầu transaction
+        $this->db->beginTransaction();
 
-            // Tìm KTV tại cửa hàng (trạng thái 6)
-            //$maKTV = $this->timKTVTaiCuaHang($ngayDat);
-            $maKTV = 99;
-            // 1. Insert vào bảng dondichvu với maKTV và thông tin tại cửa hàng
-            $sqlDonDichVu = "INSERT INTO dondichvu (
-                                 maKH, ngayDat, ghiChu, trangThai, 
-                                noiSuaChua, maKTV, nhanVienTaoDon
-                             ) VALUES ( ?, ?, ?, 1, 1, ?, ?)";
+        // Tìm KTV tại cửa hàng (trạng thái 6) không có đơn đang thực hiện
+        $maKTV = $this->timKTVTaiCuaHang($ngayDat);
 
-            $stmtDonDichVu = $this->db->prepare($sqlDonDichVu);
+        // 1. Insert vào bảng dondichvu với maKTV và thông tin tại cửa hàng
+        $sqlDonDichVu = "INSERT INTO dondichvu (
+                             maKH, ngayDat, ghiChu, trangThai, 
+                            noiSuaChua, maKTV, nhanVienTaoDon
+                         ) VALUES (?, ?, ?, 1, 1, ?, ?)";
 
-            // Tạo điểm hẹn - tại cửa hàng
-            $diemHen = $noiSuaChua;
+        $stmtDonDichVu = $this->db->prepare($sqlDonDichVu);
 
-            $stmtDonDichVu->execute([
-                $maKH,
-                $ngayDat,
-                $ghiChu,
-                $maKTV,
-                $maNhanVienTaoDon
-            ]);
+        $stmtDonDichVu->execute([
+            $maKH,
+            $ngayDat,
+            $ghiChu,
+            $maKTV ?? '', // Có thể là null nếu không tìm thấy KTV
+            $maNhanVienTaoDon
+        ]);
 
-            // Lấy mã đơn vừa insert
-            $maDon = $this->db->lastInsertId();
+        // Lấy mã đơn vừa insert
+        $maDon = $this->db->lastInsertId();
+        
+        error_log("Đã tạo đơn #$maDon thành công");
 
-            // 2. Insert vào bảng chitietdondichvu cho từng thiết bị
-            $sqlChiTiet = "INSERT INTO chitietdondichvu (
-                              maDon, maThietBi, phienBan, motaTinhTrang, trangThai
-                           ) VALUES (?, ?, ?, ?, 1)";
+        // 2. Insert vào bảng chitietdondichvu cho từng thiết bị
+        $sqlChiTiet = "INSERT INTO chitietdondichvu (
+                          maDon, maThietBi, phienban, motaTinhTrang, trangThai
+                       ) VALUES (?, ?, ?, ?, 1)";
 
-            $stmtChiTiet = $this->db->prepare($sqlChiTiet);
+        $stmtChiTiet = $this->db->prepare($sqlChiTiet);
 
-            foreach ($danhSachThietBi as $thietBi) {
-                $stmtChiTiet->execute([
-                    $maDon,
-                    $thietBi['maThietBi'],
-                    $thietBi['phienBan'],
-                    $thietBi['motaTinhTrang']
-                ]);
-            }
+        foreach ($danhSachThietBi as $thietBi) {
+            error_log("Insert chi tiết đơn: maDon=$maDon, maThietBi=" . $thietBi['maThietBi'] . 
+                     ", phienBan=" . $thietBi['phienBan'] . 
+                     ", motaTinhTrang=" . $thietBi['motaTinhTrang']);
+            
+            $stmtChiTiet->execute([
+                $maDon,
+                $thietBi['maThietBi'],
+                $thietBi['phienBan'],
+                $thietBi['motaTinhTrang']
+            ]); 
+            
+            error_log("Đã insert chi tiết đơn thành công");
+        }
 
-            // Commit transaction
-            $this->db->commit();
+        // Commit transaction
+        $this->db->commit();
 
-            // Ghi log phân công KTV tại cửa hàng
+        // Ghi log
+        if ($maKTV) {
             error_log("Đơn tại cửa hàng #$maDon đã được phân công cho KTV #$maKTV");
-
-            return $maDon;
-
-        } catch (Exception $e) {
-            // Rollback transaction nếu có lỗi
-            $this->db->rollBack();
-
-            error_log("Lỗi khi thêm đơn dịch vụ tại cửa hàng: " . $e->getMessage());
-            throw new Exception("Không thể tạo đơn dịch vụ tại cửa hàng: " . $e->getMessage());
+        } else {
+            error_log("Đơn tại cửa hàng #$maDon được tạo không có KTV phân công");
         }
+
+        return $maDon;
+
+    } catch (Exception $e) {
+        // Rollback transaction nếu có lỗi
+        $this->db->rollBack();
+
+        error_log("Lỗi khi thêm đơn dịch vụ tại cửa hàng: " . $e->getMessage());
+        throw new Exception("Không thể tạo đơn dịch vụ tại cửa hàng: " . $e->getMessage());
     }
-    public function timKTVTaiCuaHang($ngayDat)
-    {
-        try {
-            // 1. Tìm KTV tại cửa hàng (trạng thái 6) không có lịch nghỉ phép trong ngày
-            $sqlKTVTaiCuaHang = "
-            SELECT nv.maND, nv.hoTen 
-            FROM nguoidung nv 
-            LEFT JOIN lichxinnghi lxn ON nv.maND = lxn.maNV AND lxn.ngayNghi = ?
-            WHERE nv.maVaiTro = 3
-            AND nv.trangThaiHD = 6  -- Trạng thái KTV tại cửa hàng
-            AND lxn.maNV IS NULL 
-            ";
+}
 
-            $stmtKTV = $this->db->prepare($sqlKTVTaiCuaHang);
-            $stmtKTV->execute([$ngayDat]);
-            $danhSachKTV = $stmtKTV->fetchAll(PDO::FETCH_ASSOC);
+public function timKTVTaiCuaHang($ngayDat)
+{
+    try {
+        // Tìm KTV tại cửa hàng (trạng thái 6) không có lịch nghỉ phép trong ngày
+        // VÀ không có đơn đang thực hiện (trạng thái đơn: 1 - Chờ xử lý, 2 - Đang xử lý, 3 - Chờ phụ tùng)
+        $sqlKTVTaiCuaHang = "
+        SELECT nv.maND, nv.hoTen 
+        FROM nguoidung nv 
+        LEFT JOIN lichxinnghi lxn ON nv.maND = lxn.maNV AND lxn.ngayNghi = ?
+        WHERE nv.maVaiTro = 3
+        AND nv.trangThaiHD = 6  -- Trạng thái KTV tại cửa hàng
+        AND lxn.maNV IS NULL 
+        AND NOT EXISTS (
+            SELECT 1 FROM dondichvu ddv 
+            WHERE ddv.maKTV = nv.maND 
+            AND ddv.trangThai IN (1, 2, 3)  -- Các trạng thái đơn đang thực hiện
+        )
+        ";
 
-            if (empty($danhSachKTV)) {
-                // Fallback: tìm KTV bình thường nếu không có KTV tại cửa hàng
-                error_log("Không tìm thấy KTV tại cửa hàng, tìm KTV thường...");
-                return $this->timKTVPhuHopDonGian($ngayDat);
-            }
+        $stmtKTV = $this->db->prepare($sqlKTVTaiCuaHang);
+        $stmtKTV->execute([$ngayDat]);
+        $danhSachKTV = $stmtKTV->fetchAll(PDO::FETCH_ASSOC);
 
-            // 2. Đếm số đơn của từng KTV tại cửa hàng trong ngày
-            $sqlDemDon = "
-                SELECT 
-                    ddv.maKTV,
-                    COUNT(CASE WHEN DATE(ddv.ngayDat) = ? THEN 1 END) as soDonTrongNgay
-                FROM dondichvu ddv
-                WHERE ddv.maKTV IN (" . implode(',', array_fill(0, count($danhSachKTV), '?')) . ")
-                AND ddv.trangThai != 0
-                AND ddv.loaiDon = 2  -- Đơn tại cửa hàng
-                GROUP BY ddv.maKTV
-            ";
+        if (empty($danhSachKTV)) {
+            error_log("Không tìm thấy KTV tại cửa hàng phù hợp. Đơn sẽ được tạo không có KTV phân công.");
+            return null; // Trả về null nếu không tìm thấy KTV
+        }
 
-            $params = [$ngayDat];
-            $maKTVs = array_column($danhSachKTV, 'maND');
-            $params = array_merge($params, $maKTVs);
+        // Đếm số đơn của từng KTV tại cửa hàng trong ngày
+        $sqlDemDon = "
+            SELECT 
+                ddv.maKTV,
+                COUNT(CASE WHEN DATE(ddv.ngayDat) = ? THEN 1 END) as soDonTrongNgay
+            FROM dondichvu ddv
+            WHERE ddv.maKTV IN (" . implode(',', array_fill(0, count($danhSachKTV), '?')) . ")
+            AND ddv.trangThai != 0
+            AND ddv.noiSuaChua = 1  -- Đơn tại cửa hàng
+            GROUP BY ddv.maKTV
+        ";
 
-            $stmtDemDon = $this->db->prepare($sqlDemDon);
-            $stmtDemDon->execute($params);
-            $thongKeDon = $stmtDemDon->fetchAll(PDO::FETCH_ASSOC);
+        $params = [$ngayDat];
+        $maKTVs = array_column($danhSachKTV, 'maND');
+        $params = array_merge($params, $maKTVs);
 
-            // 3. Tạo mảng thông tin cho KTV tại cửa hàng
-            $ktvThongTin = [];
-            foreach ($danhSachKTV as $ktv) {
-                $soDonTrongNgay = 0;
+        $stmtDemDon = $this->db->prepare($sqlDemDon);
+        $stmtDemDon->execute($params);
+        $thongKeDon = $stmtDemDon->fetchAll(PDO::FETCH_ASSOC);
 
-                // Tìm thông tin thống kê cho KTV này
-                foreach ($thongKeDon as $thongKe) {
-                    if ($thongKe['maKTV'] == $ktv['maND']) {
-                        $soDonTrongNgay = $thongKe['soDonTrongNgay'];
-                        break;
-                    }
+        // Tạo mảng thông tin cho KTV tại cửa hàng
+        $ktvThongTin = [];
+        foreach ($danhSachKTV as $ktv) {
+            $soDonTrongNgay = 0;
+
+            // Tìm thông tin thống kê cho KTV này
+            foreach ($thongKeDon as $thongKe) {
+                if ($thongKe['maKTV'] == $ktv['maND']) {
+                    $soDonTrongNgay = $thongKe['soDonTrongNgay'];
+                    break;
                 }
-
-                $ktvThongTin[] = [
-                    'maND' => $ktv['maND'],
-                    'tenNV' => $ktv['hoTen'],
-                    'soDonTrongNgay' => $soDonTrongNgay,
-                    'diemUuTien' => $soDonTrongNgay // Ít đơn hơn = tốt hơn
-                ];
             }
 
-            // 4. Sắp xếp KTV theo số đơn trong ngày (ít đơn hơn = ưu tiên hơn)
-            usort($ktvThongTin, function ($a, $b) {
-                return $a['soDonTrongNgay'] - $b['soDonTrongNgay'];
-            });
-
-            // 5. Chọn KTV có ít đơn nhất
-            $ktvPhuHop = $ktvThongTin[0];
-
-            error_log("Đã chọn KTV tại cửa hàng: " . $ktvPhuHop['maND'] . " - Số đơn trong ngày: " . $ktvPhuHop['soDonTrongNgay']);
-
-            return $ktvPhuHop['maND'];
-
-        } catch (Exception $e) {
-            error_log("Lỗi khi tìm KTV tại cửa hàng: " . $e->getMessage());
-
-            // Fallback: tìm KTV bình thường
-            return $this->timKTVPhuHopDonGian($ngayDat);
+            $ktvThongTin[] = [
+                'maND' => $ktv['maND'],
+                'tenNV' => $ktv['hoTen'],
+                'soDonTrongNgay' => $soDonTrongNgay
+            ];
         }
+
+        // Sắp xếp KTV theo số đơn trong ngày (ít đơn hơn = ưu tiên hơn)
+        usort($ktvThongTin, function ($a, $b) {
+            return $a['soDonTrongNgay'] - $b['soDonTrongNgay'];
+        });
+
+        // Chọn KTV có ít đơn nhất
+        $ktvPhuHop = $ktvThongTin[0];
+
+        error_log("Đã chọn KTV tại cửa hàng: " . $ktvPhuHop['maND'] . " - Số đơn trong ngày: " . $ktvPhuHop['soDonTrongNgay']);
+
+        return $ktvPhuHop['maND'];
+
+    } catch (Exception $e) {
+        error_log("Lỗi khi tìm KTV tại cửa hàng: " . $e->getMessage());
+        return null; // Trả về null nếu có lỗi
     }
-
-    // Hàm fallback đơn giản để tìm KTV
-    private function timKTVPhuHopDonGian($ngayDat)
-    {
-        try {
-            $sqlFallback = "
-                SELECT nv.maND 
-                FROM nguoidung nv 
-                LEFT JOIN lichxinnghi lxn ON nv.maND = lxn.maNV AND lxn.ngayNghi = ?
-                WHERE nv.maVaiTro = 3
-                AND nv.trangThaiHD IN (1, 6)  -- Cả KTV thường và tại cửa hàng
-                AND lxn.maNV IS NULL 
-                ORDER BY nv.trangThaiHD DESC, RAND() 
-                LIMIT 1
-            ";
-
-            $stmtFallback = $this->db->prepare($sqlFallback);
-            $stmtFallback->execute([$ngayDat]);
-            $ktvFallback = $stmtFallback->fetch(PDO::FETCH_ASSOC);
-
-            if ($ktvFallback) {
-                error_log("Sử dụng KTV fallback: " . $ktvFallback['maND']);
-                return $ktvFallback['maND'];
-            }
-
-            throw new Exception("Không thể tìm thấy KTV phù hợp");
-
-        } catch (Exception $e) {
-            error_log("Lỗi fallback tìm KTV: " . $e->getMessage());
-            throw new Exception("Không thể tìm thấy KTV phù hợp cho đơn tại cửa hàng");
-        }
-    }
+}
 }

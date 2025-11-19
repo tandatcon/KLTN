@@ -22,6 +22,7 @@ class KhachHang {
     }
 
     public function capNhatKH($id, $hoTen, $sdt, $email, $diaChi) {
+        echo $diaChi;
         $sql = "UPDATE nguoidung SET 
                     hoTen = ?, 
                     sdt = ?, 
@@ -51,6 +52,28 @@ class KhachHang {
             return false;
         }
     }
+    // Thêm vào class KhachHang
+// Thêm vào class KhachHang
+public function themKhachHang($hoTen, $sdt, $email, $diaChi)
+{
+    try {
+        // Mật khẩu mặc định: 123456 (đã mã hóa)
+         $hashedPassword = password_hash('123456', PASSWORD_DEFAULT);
+        
+        // Thêm vào bảng nguoidung với maVaiTro = 1 (khách hàng)
+
+         $sql = "INSERT INTO nguoidung (hoTen, sdt, email, password, maVaiTro, trangThaiHD, diaChi, diemTichLuy) 
+               VALUES (?, ?, ?, ?, 1, 1, ?, 0)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$hoTen, $sdt, $email, $hashedPassword, $diaChi]);
+        
+        return $this->db->lastInsertId();
+        
+    } catch (Exception $e) {
+        error_log("Lỗi thêm khách hàng: " . $e->getMessage());
+        return false;
+    }
+}
 
 }
 

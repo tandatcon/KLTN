@@ -399,18 +399,18 @@ class QuyTrinhService
         }
     }
     //Thêm công việc sửa chữa phát sinh
-    public function themCVSuaChua($maDon, $maCTDon, $tenCongViec, $chiPhi, $maKTV)
+    public function themCVSuaChua($maDon, $maCTDon, $tenCongViec, $chiPhi, $maKTV,$thoiGianGio)
     {
         $this->db->beginTransaction();
 
         try {
             // 1. Thêm công việc sửa chữa phát sinh
             $sql = "INSERT INTO chitietsuachua 
-                    (maCTDon, maDon, loiSuaCHua, chiPhi,loai) 
-                    VALUES (?, ?, ?, ?,'Phát sinh')";
+                    (maCTDon, maDon, loiSuaCHua, chiPhi,loai,thoigian) 
+                    VALUES (?, ?, ?, ?,'Phát sinh',?)";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([$maCTDon, $maDon, $tenCongViec, $chiPhi]);
+            $stmt->execute([$maCTDon, $maDon, $tenCongViec, $chiPhi,$thoiGianGio]);
 
             // 2. Cập nhật tổng chi phí trong chitietsuachua (nếu cần)
             // Lấy tổng chi phí hiện tại
@@ -490,7 +490,7 @@ class QuyTrinhService
                         pl.maThietBi,
                         pl.chitietloi,
                         pl.khoangGia,
-                        pl.ghiChu
+                        pl.thoigiansuachua
                      FROM banggiaSC pl 
                      WHERE pl.maThietBi = ? 
                      ORDER BY pl.maGia ASC";

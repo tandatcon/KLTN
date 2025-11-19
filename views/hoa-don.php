@@ -51,6 +51,21 @@ foreach ($devices as $device) {
         }
     }
 }
+
+// Xác định trạng thái thanh toán
+$paymentStatus = 'Chưa thanh toán';
+$paymentBadgeClass = 'bg-warning';
+$paymentMethod = '';
+
+if ($order['thanhToan'] == 1) {
+    $paymentStatus = 'Đã thanh toán - Chuyển khoản';
+    $paymentBadgeClass = 'bg-success';
+    $paymentMethod = 'Chuyển khoản';
+} elseif ($order['thanhToan'] == 2) {
+    $paymentStatus = 'Đã thanh toán - Tiền mặt';
+    $paymentBadgeClass = 'bg-success';
+    $paymentMethod = 'Tiền mặt';
+}
 ?>
 
 <style>
@@ -110,8 +125,8 @@ foreach ($devices as $device) {
                                 <h1 class="display-6 fw-bold text-primary mb-1">HÓA ĐƠN</h1>
                                 <p class="mb-1"><strong>Mã đơn:</strong> #<?= $orderId ?></p>
                                 <p class="mb-2 small text-muted"><?= date('d/m/Y H:i', strtotime($order['ngayDat'])) ?></p>
-                                <span class="badge <?= $totalCost > 0 ? 'bg-success' : 'bg-warning' ?> fs-6">
-                                    <?= $totalCost > 0 ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN' ?>
+                                <span class="badge <?= $paymentBadgeClass ?> fs-6">
+                                    <?= $paymentStatus ?>
                                 </span>
                             </div>
                         </div>
@@ -211,6 +226,20 @@ foreach ($devices as $device) {
                                     <td class="text-end fs-5 fw-bold text-success">TỔNG THANH TOÁN:</td>
                                     <td class="text-end fs-5 fw-bold text-success"><?= number_format($totalCost) ?>đ</td>
                                 </tr>
+                                
+                                <!-- Hiển thị phương thức thanh toán nếu đã thanh toán -->
+                                <?php if ($order['thanhToan'] > 0): ?>
+                                <tr>
+                                    <td class="text-end text-muted">Phương thức:</td>
+                                    <td class="text-end fw-bold text-primary"><?= $paymentMethod ?></td>
+                                </tr>
+                                <?php if (!empty($order['ngayThanhToan'])): ?>
+                                <tr>
+                                    <td class="text-end text-muted">Ngày thanh toán:</td>
+                                    <td class="text-end"><?= date('d/m/Y H:i', strtotime($order['ngayThanhToan'])) ?></td>
+                                </tr>
+                                <?php endif; ?>
+                                <?php endif; ?>
                             </table>
                             <div class="clearfix"></div>
                         </div>
@@ -224,13 +253,9 @@ foreach ($devices as $device) {
                                 <ul class="small text-muted">
                                     <li>Bảo hành linh kiện & công sửa chữa: 03 tháng</li>
                                     <li>Liên hệ ngay nếu máy có vấn đề trong thời gian bảo hành</li>
+                                    
                                 </ul>
-                                <?php if (!empty($order['ghiChu'])): ?>
-                                    <div class="alert alert-warning py-2 small">
-                                        <strong>Ghi chú khách hàng:</strong><br>
-                                        <?= nl2br(htmlspecialchars($order['ghiChu'])) ?>
-                                    </div>
-                                <?php endif; ?>
+                                
                             </div>
                             <div class="col-md-5 text-center mt-4 mt-md-0">
                                 <p class="mb-1">TP.HCM, ngày <?= date('d') ?> tháng <?= date('m') ?> năm <?= date('Y') ?></p>
