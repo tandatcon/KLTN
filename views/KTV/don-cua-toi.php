@@ -28,7 +28,7 @@ $allOrders = $orderModel->getDonPhanCongByKTV($ktvId);
 
 // Lọc theo trạng thái nếu có
 if ($statusFilter !== 'all') {
-    $allOrders = array_filter($allOrders, function($order) use ($statusFilter) {
+    $allOrders = array_filter($allOrders, function ($order) use ($statusFilter) {
         return $order['trangThai'] == $statusFilter;
     });
 }
@@ -63,7 +63,7 @@ if ($statusFilter !== 'all') {
             <div class="card-header bg-warning text-dark">
                 <h6 class="mb-0">
                     <i class="fas fa-star me-2"></i>
-                    Đơn Hôm Nay 
+                    Đơn Hôm Nay
                     <?php if (!empty($todayOrders)): ?>
                         (<?php echo count($todayOrders); ?> đơn)
                     <?php endif; ?>
@@ -79,6 +79,7 @@ if ($statusFilter !== 'all') {
                                     <th width="120">Khách hàng</th>
                                     <th>Số lượng thiết bị</th>
                                     <th>Địa điểm</th>
+                                    <th>Số điện thoại</th>
                                     <th width="120">Loại</th>
                                     <th width="100">Chi tiết</th>
                                     <th width="100">Thao tác</th>
@@ -86,54 +87,58 @@ if ($statusFilter !== 'all') {
                             </thead>
                             <tbody>
                                 <?php foreach ($todayOrders as $order): ?>
-                                <tr>
-                                    <td>
-                                        <strong>#<?php echo $order['maDon']; ?></strong>
-                                    </td>
-                                    <td>
-                                        <?php echo htmlspecialchars($order['customer_name'] ?? 'N/A'); ?>
-                                    </td>
-                                    <td>
-                                        <div class="fw-bold"><?php  echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?></div>
-                                    </td>
-                                    <td>
-    <?php 
-    $address = $order['diemhen'] ?? 'N/A';
-    if ($address !== 'N/A' && !empty($address)) {
-        $encodedAddress = urlencode($address);
-        echo 'Click mở chỉ đường -> <a href="https://www.google.com/maps/dir/?api=1&destination=' . $encodedAddress . '" 
+                                    <tr>
+                                        <td>
+                                            <strong>#<?php echo $order['maDon']; ?></strong>
+                                        </td>
+                                        <td>
+                                            <?php echo htmlspecialchars($order['customer_name'] ?? 'N/A'); ?>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold"><?php echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <?php
+                                            $address = $order['diemhen'] ?? 'N/A';
+                                            if ($address !== 'N/A' && !empty($address)) {
+                                                $encodedAddress = urlencode($address);
+                                                echo 'Click mở chỉ đường -> <a href="https://www.google.com/maps/dir/?api=1&destination=' . $encodedAddress . '" 
                  target="_blank" class="text-decoration-none" 
                  title="Chỉ đường đến ' . htmlspecialchars($address) . '">
                 <i class="fas fa-map-marker-alt text-danger me-1"></i>
                 ' . htmlspecialchars($address) . '
               </a>';
-    } else {
-        echo 'N/A';
-    }
-    ?>
-</td>
-                                    <td>
-                                        <?php if ($order['noiSuaChua'] == 1): ?>
-                                            <span class="badge bg-success">Cửa hàng</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-info">Nhà Khách Hàng</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                    <a href="<?php echo url('KTV/chi-tiet-don?id=' . $order['maDon']); ?>" 
-                                               class="btn btn-primary btn-sm">
-                                               <i class="fas fa-eye me-1"></i>Chi tiết
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td>
+                                            <?php echo htmlspecialchars($order['sdt'] ?? 'N/A'); ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($order['noiSuaChua'] == 1): ?>
+                                                <span class="badge bg-success">Cửa hàng</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-info">Nhà Khách Hàng</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <a href="<?php echo url('KTV/chi-tiet-don?id=' . $order['maDon']); ?>"
+                                                class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>Chi tiết
                                             </a>
-                                    </td>
-                                    <td>
-                                        <a href="<?php echo url('KTV/thuc-hien-dich-vu?id=' . $order['maDon']); ?>" 
-                                           class="btn btn-primary btn-sm">
-                                            <i class="fas fa-play me-1"></i>Thực hiện
-                                        </a>
-                                        
-                                        
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td>
+                                            <a href="<?php echo url('KTV/thuc-hien-dich-vu?id=' . $order['maDon']); ?>"
+                                                class="btn btn-primary btn-sm">
+                                                <i class="fas fa-play me-1"></i>Thực hiện
+                                            </a>
+
+
+                                        </td>
+                                    </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -154,8 +159,10 @@ if ($statusFilter !== 'all') {
                     <div class="col-md-3">
                         <label class="form-label"><strong>Lọc theo trạng thái:</strong></label>
                         <select class="form-select" onchange="window.location.href='?status='+this.value">
-                            <option value="all" <?php echo $statusFilter == 'all' ? 'selected' : ''; ?>>Tất cả đơn</option>
-                            <option value="2" <?php echo $statusFilter == '2' ? 'selected' : ''; ?>>Đang thực hiện</option>
+                            <option value="all" <?php echo $statusFilter == 'all' ? 'selected' : ''; ?>>Tất cả đơn
+                            </option>
+                            <option value="2" <?php echo $statusFilter == '2' ? 'selected' : ''; ?>>Đang thực hiện
+                            </option>
                             <option value="3" <?php echo $statusFilter == '3' ? 'selected' : ''; ?>>Đã hoàn thành</option>
                         </select>
                     </div>
@@ -191,19 +198,19 @@ if ($statusFilter !== 'all') {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($allOrders as $order): 
+                                <?php foreach ($allOrders as $order):
                                     $statusClass = [
                                         '1' => 'primary',
-                                        '2' => 'warning', 
+                                        '2' => 'warning',
                                         '3' => 'success'
                                     ][$order['trangThai']];
-                                    
+
                                     $statusText = [
                                         '1' => 'Đã tiếp nhận',
                                         '2' => 'Đang thực hiện',
                                         '3' => 'Hoàn thành'
                                     ][$order['trangThai']];
-                                ?>
+                                    ?>
                                     <tr>
                                         <td>
                                             <strong>#<?php echo $order['maDon']; ?></strong>
@@ -215,8 +222,10 @@ if ($statusFilter !== 'all') {
                                             <?php echo htmlspecialchars($order['customer_name'] ?? 'N/A'); ?>
                                         </td>
                                         <td>
-                                            <div class="fw-bold"><?php echo htmlspecialchars($order['tenThietBi'] ?? 'N/A'); ?></div>
-                                            <small class="text-muted"><?php echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?></small>
+                                            <div class="fw-bold"><?php echo htmlspecialchars($order['tenThietBi'] ?? 'N/A'); ?>
+                                            </div>
+                                            <small
+                                                class="text-muted"><?php echo htmlspecialchars($order['loai_thietbi'] ?? ''); ?></small>
                                         </td>
                                         <td>
                                             <?php if ($order['noiSuaChua'] == 1): ?>
@@ -231,8 +240,8 @@ if ($statusFilter !== 'all') {
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="<?php echo url('KTV/chi-tiet-don?id=' . $order['maDon']); ?>" 
-                                               class="btn btn-outline-primary btn-sm">
+                                            <a href="<?php echo url('KTV/chi-tiet-don?id=' . $order['maDon']); ?>"
+                                                class="btn btn-outline-primary btn-sm">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                         </td>
@@ -250,16 +259,18 @@ if ($statusFilter !== 'all') {
 <?php include __DIR__ . '/../footer.php'; ?>
 
 <style>
-.table th {
-    border-top: none;
-    font-weight: 600;
-    font-size: 0.875rem;
-}
-.table td {
-    vertical-align: middle;
-}
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-}
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
 </style>

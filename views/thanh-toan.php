@@ -41,7 +41,7 @@ if (!$order) {
 // Kiểm tra nếu đã thanh toán rồi
 if ($order['thanhToan'] == 1) {
     $_SESSION['success'] = "Đơn hàng đã được thanh toán!";
-    header('Location: ' . url('order-detail?id=' . $orderId));
+    header('Location: ' . url('chi-tiet-don?id=' . $orderId));
     exit();
 }
 
@@ -70,6 +70,8 @@ foreach ($devices as $device) {
 }
 
 // Xử lý thanh toán
+// Trong phần xử lý form thanh toán
+// Trong phần xử lý form thanh toán
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['thanh_toan'])) {
     $diemSuDung = intval($_POST['diem_su_dung'] ?? 0);
     $paymentMethod = $_POST['payment_method'] ?? 'vnpay';
@@ -80,21 +82,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['thanh_toan'])) {
     if ($diemSuDung > $diemHienCo) {
         $_SESSION['error'] = "Số điểm sử dụng vượt quá điểm tích lũy hiện có!";
     } else {
-        // Xử lý thanh toán qua VNPay
-        $result = $paymentController->processVNPayPayment($orderId, $totalCost, $maKH, $diemSuDung);
-
-        if ($result['success']) {
-            if (isset($result['free_payment']) && $result['free_payment']) {
-                $_SESSION['success'] = "Thanh toán thành công bằng điểm tích lũy!";
-                header('Location: ' . url('order-detail?id=' . $orderId));
+        // XỬ LÝ PHÂN LOẠI PHƯƠNG THỨC THANH TOÁN
+        if ($paymentMethod === 'cash') {
+            // Thanh toán tiền mặt
+            $result = $paymentController->processCashPayment($orderId, $maKH, $diemSuDung);
+            
+            if ($result['success']) {
+                $_SESSION['success'] = $result['message'];
+                header('Location: ' . url('chi-tiet-don?id=' . $orderId));
                 exit();
-            } elseif (isset($result['payment_url'])) {
-                // Chuyển hướng đến VNPay
-                header('Location: ' . $result['payment_url']);
-                exit();
+            } else {
+                $_SESSION['error'] = $result['error'] ?? "Có lỗi xảy ra khi xác nhận thanh toán tiền mặt!";
             }
+            
         } else {
-            $_SESSION['error'] = $result['error'] ?? "Có lỗi xảy ra khi thanh toán. Vui lòng thử lại!";
+            // Thanh toán qua VNPay
+            $result = $paymentController->processVNPayPayment($orderId, $totalCost, $maKH, $diemSuDung);
+
+            if ($result['success']) {
+                if (isset($result['payment_url'])) {
+                    // Chuyển hướng đến VNPay
+                    header('Location: ' . $result['payment_url']);
+                    exit();
+                }
+            } else {
+                $_SESSION['error'] = $result['error'] ?? "Có lỗi xảy ra khi thanh toán. Vui lòng thử lại!";
+            }
         }
     }
 }
@@ -431,43 +444,45 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
         </div>
 
         <!-- Phương thức thanh toán -->
-        <div class="shopee-style">
-            <div class="section-title">Phương thức thanh toán</div>
-            
-            <div class="payment-method selected" onclick="selectPaymentMethod('vnpay')">
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_method" 
-                           id="vnpay" value="vnpay" checked>
-                    <label class="form-check-label w-100" for="vnpay">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-credit-card payment-icon"></i>
-                            <div>
-                                <div class="fw-bold">Thanh toán qua VNPay</div>
-                                <div class="text-muted small">Thanh toán an toàn qua cổng VNPay</div>
-                            </div>
-                        </div>
-                    </label>
+        <!-- Phương thức thanh toán -->
+<div class="shopee-style">
+    <div class="section-title">Phương thức thanh toán</div>
+    
+    <div class="payment-method selected" onclick="selectPaymentMethod('vnpay')">
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="payment_method" 
+                   id="vnpay" value="vnpay" checked>
+            <label class="form-check-label w-100" for="vnpay">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-credit-card payment-icon"></i>
+                    <div>
+                        <div class="fw-bold">Thanh toán qua VNPay</div>
+                        <div class="text-muted small">Chuyển khoản an toàn qua cổng VNPay</div>
+                    </div>
                 </div>
-            </div>
-            
-            <?php if ($diemHienCo >= $totalCost / 1000): ?>
-            <div class="payment-method" onclick="selectPaymentMethod('points_only')">
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="payment_method" 
-                           id="points_only" value="points_only">
-                    <label class="form-check-label w-100" for="points_only">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-coins payment-icon"></i>
-                            <div>
-                                <div class="fw-bold">Thanh toán bằng điểm tích lũy</div>
-                                <div class="text-muted small">Sử dụng <?= number_format(ceil($totalCost / 1000)) ?> điểm để thanh toán toàn bộ</div>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-            </div>
-            <?php endif; ?>
+            </label>
         </div>
+    </div>
+    
+    <!-- THANH TOÁN TIỀN MẶT -->
+    <div class="payment-method" onclick="selectPaymentMethod('cash')">
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="payment_method" 
+                   id="cash" value="cash">
+            <label class="form-check-label w-100" for="cash">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-money-bill-wave payment-icon"></i>
+                    <div>
+                        <div class="fw-bold">Thanh toán tiền mặt</div>
+                        <div class="text-muted small">Thanh toán khi nhận dịch vụ hoàn tất</div>
+                    </div>
+                </div>
+            </label>
+        </div>
+    </div>
+</div>
+    
+    
 
         <!-- Điểm tích lũy -->
         <div class="shopee-style">
@@ -566,25 +581,27 @@ $diemNhanDuoc = round($totalCost * 0.015 / 1000);
     }
 
     function selectPaymentMethod(method) {
-        // Remove selected class from all payment methods
-        document.querySelectorAll('.payment-method').forEach(el => {
-            el.classList.remove('selected');
-        });
-        
-        // Add selected class to clicked method
-        event.currentTarget.classList.add('selected');
-        
-        // Update radio button
-        document.getElementById(method).checked = true;
-        
-        // Update button text
-        const button = document.querySelector('.btn-payment');
-        if (method === 'points_only') {
-            button.innerHTML = '<i class="fas fa-coins me-2"></i> THANH TOÁN BẰNG ĐIỂM';
-        } else {
-            button.innerHTML = '<i class="fas fa-credit-card me-2"></i> THANH TOÁN VNPAY';
-        }
+    // Remove selected class from all payment methods
+    document.querySelectorAll('.payment-method').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked method
+    event.currentTarget.classList.add('selected');
+    
+    // Update radio button
+    document.getElementById(method).checked = true;
+    
+    // Update button text
+    const button = document.querySelector('.btn-payment');
+    if (method === 'points_only') {
+        button.innerHTML = '<i class="fas fa-coins me-2"></i> THANH TOÁN BẰNG ĐIỂM';
+    } else if (method === 'cash') {
+        button.innerHTML = '<i class="fas fa-money-bill-wave me-2"></i> XÁC NHẬN THANH TOÁN TIỀN MẶT';
+    } else {
+        button.innerHTML = '<i class="fas fa-credit-card me-2"></i> THANH TOÁN VNPAY';
     }
+}
 
     // Khởi tạo khi trang load
     document.addEventListener('DOMContentLoaded', function () {

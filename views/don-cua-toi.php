@@ -35,7 +35,7 @@ if (isset($_GET['huydon'])) {
     } catch (Exception $e) {
         $_SESSION['error'] = $e->getMessage();
     }
-    
+
     header('Location: ' . url('don-cua-toi'));
     exit();
 }
@@ -401,6 +401,30 @@ include VIEWS_PATH . '/header.php';
                                                     Hủy đơn
                                                 </button>
                                             <?php endif; ?>
+
+                                            <!-- THÊM NÚT ĐÁNH GIÁ CHO ĐƠN HOÀN THÀNH -->
+                                            <?php if ((int) $orderSafe['trangThai'] === 4): ?>
+                                                <?php
+                                                // Kiểm tra xem đơn hàng đã được đánh giá chưa
+                                                $existingRating = $donHangService->getRatingByOrder($orderSafe['maDon']);
+                                                ?>
+
+                                                <?php if ($existingRating): ?>
+                                                    <!-- ĐÃ ĐÁNH GIÁ -->
+                                                    <button type="button" class="btn btn-success" disabled>
+                                                        <i class="fas fa-check-circle me-1"></i>
+                                                        Đã đánh giá
+                                                    </button>
+                                                <?php else: ?>
+                                                    <!-- CHƯA ĐÁNH GIÁ -->
+                                                    <a href="<?php echo url('danh-gia?order_id=' . $orderSafe['maDon']); ?>"
+                                                        class="btn btn-warning rating-btn">
+                                                        <i class="fas fa-star me-1"></i>
+                                                        Đánh giá
+                                                    </a>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+
                                             <a href="<?php echo url('chi-tiet-don?id=' . $orderSafe['maDon']); ?>"
                                                 class="btn btn-primary ms-auto">
                                                 <i class="fas fa-eye me-1"></i>

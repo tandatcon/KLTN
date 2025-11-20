@@ -262,8 +262,8 @@ class DonHangService
                 return null;
 
             $sql = "
-                SELECT maND as maNV, hoTen, sdt, email
-                FROM nguoidung 
+                SELECT a.maND as maNV, a.hoTen, a.sdt, a.email, b.tbDanhGia
+                FROM nguoidung a join hosokythuatvien b on a.maND=b.maKTV
                 WHERE maND = ? AND maVaiTro = 3
             ";
 
@@ -675,5 +675,93 @@ class DonHangService
             return null;
         }
     }
+
+
+// Thêm các phương thức này vào class DonHangService
+
+// Kiểm tra đã đánh giá chưa
+public function getRatingByOrder($maDon) {
+    $sql = "SELECT * FROM danhgia_ktv WHERE maDon = ?";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([$maDon]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+// Lưu đánh giá
+public function saveRating($maDon, $maKH, $maKTV, $diemDanhGia, $noiDungDanhGia, $tieuChi = []) {
+    $sql = "INSERT INTO danhgia_ktv 
+            (maDon, maKH, maKTV, diemDanhGia, noiDungDanhGia, chuyenMon, thaiDo, dungGio, hieuQua) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    $stmt = $this->db->prepare($sql);
+    
+    $result = $stmt->execute([
+        $maDon,
+        $maKH,
+        $maKTV,
+        $diemDanhGia,
+        $noiDungDanhGia,
+        in_array('chuyen_mon', $tieuChi) ? 1 : 0,
+        in_array('thai_do', $tieuChi) ? 1 : 0,
+        in_array('dung_gio', $tieuChi) ? 1 : 0,
+        in_array('hieu_qua', $tieuChi) ? 1 : 0
+    ]);
+    
+    if ($result) {
+        $this->updateTechnicianRating($maKTV);
+    }
+    
+    return $result;
+}
+
+// Cập nhật điểm trung bình KTV
+public function updateTechnicianRating($maKTV) {
+    $sql = "SELECT AVG(diemDanhGia) as diemTrungBinh, COUNT(*) as soLuongDanhGia 
+            FROM danhgia_ktv WHERE maKTV = ?";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([$maKTV]);
+    $ratingInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $updateSql = "UPDATE hosokythuatvien SET tbDanhGia = ?, soLuongDanhGia = ? WHERE maKTV = ?";
+    $updateStmt = $this->db->prepare($updateSql);
+    return $updateStmt->execute([
+        round($ratingInfo['diemTrungBinh'], 1),
+        $ratingInfo['soLuongDanhGia'],
+        $maKTV
+    ]);
+}
+public function getMyRatings($maKH) {
+    try {
+        $sql = "SELECT 
+        dg.*, 
+        dh.maDon,
+        k.hoTen as hoTenKTV
+    FROM danhgia_ktv dg 
+    INNER JOIN dondichvu dh ON dg.maDon = dh.maDon 
+    LEFT JOIN nguoidung k ON dg.maKTV = k.maND
+    WHERE dg.maKH = ?
+    ORDER BY dg.thoiGianDanhGia DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$maKH]);
+        $ratings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Xử lý tiêu chí đánh giá
+        foreach ($ratings as &$rating) {
+            $tieuChi = [];
+            if ($rating['chuyenMon'] == 1) $tieuChi[] = 'chuyen_mon';
+            if ($rating['thaiDo'] == 1) $tieuChi[] = 'thai_do';
+            if ($rating['dungGio'] == 1) $tieuChi[] = 'dung_gio';
+            if ($rating['hieuQua'] == 1) $tieuChi[] = 'hieu_qua';
+            
+            $rating['tieuChiDanhGia'] = $tieuChi;
+        }
+        
+        return $ratings;
+    } catch (PDOException $e) {
+        error_log("Lỗi khi lấy đánh giá của khách hàng: " . $e->getMessage());
+        return [];
+    }
+}
 }
 ?>

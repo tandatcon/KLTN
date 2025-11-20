@@ -184,6 +184,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     echo json_encode(['success' => false, 'message' => 'Không thể lưu công việc phát sinh!']);
                 }
                 break;
+            // Thêm case này cùng với các case xử lý khác
+            case 'cash_payment':
+                try {
+                    $maDon = $_POST['maDon'] ?? 0;
+
+                    if (!$maDon) {
+                        echo json_encode(['success' => false, 'message' => 'Mã đơn hàng không hợp lệ']);
+                        exit;
+                    }
+
+                    // Cập nhật trạng thái thanh toán = 2 (tiền mặt)
+                    $sql = "UPDATE dondichvu SET thanhtoan = 3  WHERE maDon = ?";
+                    $stmt = $db->prepare($sql);
+
+                    if ($stmt->execute([$maDon])) {
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Đã cập nhật thanh toán tiền mặt thành công!'
+                        ]);
+                    } else {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Lỗi khi cập nhật thanh toán!'
+                        ]);
+                    }
+
+                } catch (Exception $e) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+                    ]);
+                }
+                break;
 
             default:
                 echo json_encode(['success' => false, 'message' => 'Action không hợp lệ']);

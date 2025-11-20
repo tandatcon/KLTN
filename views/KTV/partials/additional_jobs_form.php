@@ -89,7 +89,7 @@ if (!isset($ctdd) || !isset($chiTietGia))
                         <th width="45%">Công việc / Lỗi</th>
                         <th width="15%" class="text-center">Khoảng giá</th>
                         <th width="15%" class="text-center">Thời gian</th>
-                        <th width="15%" class="text-end">Chi phí</th>
+                        <th width="15%" class="text-end">Chi phí thực tế</th>
                         <th width="5%" class="text-center">Xóa</th>
                     </tr>
                 </thead>
@@ -112,20 +112,20 @@ if (!isset($ctdd) || !isset($chiTietGia))
         </div>
         
         <!-- TỔNG KẾT PHÁT SINH -->
-        <div class="row g-3 mt-4 px-3">
-            <div class="col-md-6">
-                <div class="text-center p-3 bg-light rounded border">
-                    <h5 class="text-info mb-1">Tổng thời gian phát sinh</h5>
-                    <h3 class="text-info fw-bold mb-0" id="total_time_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 phút</h3>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="text-center p-3 bg-light rounded border">
-                    <h5 class="text-primary mb-1">Tổng chi phí phát sinh</h5>
-                    <h3 class="text-primary fw-bold mb-0" id="total_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</h3>
-                </div>
-            </div>
+        <div class="row g-3 mt-4 px-3" style="display: none;">
+    <div class="col-md-6">
+        <div class="text-center p-3 bg-light rounded border">
+            <h5 class="text-info mb-1">Tổng thời gian phát sinh</h5>
+            <h3 class="text-info fw-bold mb-0" id="total_time_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 phút</h3>
         </div>
+    </div>
+    <div class="col-md-6">
+        <div class="text-center p-3 bg-light rounded border">
+            <h5 class="text-primary mb-1">Tổng chi phí phát sinh</h5>
+            <h3 class="text-primary fw-bold mb-0" id="total_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</h3>
+        </div>
+    </div>
+</div>
 
         <div align="center" class="mt-4 pb-3">
             <button type="button" class="btn btn-success btn-lg px-5" onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">

@@ -47,7 +47,7 @@ if (!isset($ctdd) || !isset($chiTietGia)) {
                                 data-time="<?php echo $cv['thoigiansuachua'] ?? 0; ?>"
                                 data-cost="<?php echo $cv['gia'] ?? 0; ?>">
                                 <?php echo htmlspecialchars($cv['chitietloi']); ?>
-                                (<?php echo $cv['khoangGia']; ?> - <?php echo $cv['thoigiansuachua']; ?>h)
+                                (<?php echo $cv['khoangGia']; ?> - <?php echo $cv['thoigiansuachua']; ?>phút)
                             </option>
                         <?php endforeach; ?>
                         <option value="custom">-- Lỗi khác (tự nhập) --</option>
@@ -115,7 +115,7 @@ if (!isset($ctdd) || !isset($chiTietGia)) {
                             <th width="45%">Công việc / Lỗi</th>
                             <th width="15%" class="text-center">Khoảng giá</th>
                             <th width="15%" class="text-center">Thời gian</th>
-                            <th width="15%" class="text-end">Chi phí</th>
+                            <th width="15%" class="text-end">Chi phí thực tế</th>
                             <th width="5%" class="text-center">Xóa</th>
                         </tr>
                     </thead>
@@ -140,28 +140,28 @@ if (!isset($ctdd) || !isset($chiTietGia)) {
     </div>
 
     <!-- TỔNG KẾT -->
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
-            <div class="card border-info h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-info">
-                        <i class="fas fa-clock me-2"></i>Tổng thời gian
-                    </h5>
-                    <h2 class="text-info fw-bold mb-0" id="total_time_display_<?php echo $ctdd['maCTDon']; ?>">0 phút</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-3">
-            <div class="card border-primary h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-primary">
-                        <i class="fas fa-money-bill-wave me-2"></i>Tổng chi phí
-                    </h5>
-                    <h2 class="text-primary fw-bold mb-0" id="total_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</h2>
-                </div>
+    <div class="row mb-4" style="display: none;">
+    <div class="col-md-6 mb-3">
+        <div class="card border-info h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-info">
+                    <i class="fas fa-clock me-2"></i>Tổng thời gian
+                </h5>
+                <h2 class="text-info fw-bold mb-0" id="total_time_display_<?php echo $ctdd['maCTDon']; ?>">0 phút</h2>
             </div>
         </div>
     </div>
+    <div class="col-md-6 mb-3">
+        <div class="card border-primary h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary">
+                    <i class="fas fa-money-bill-wave me-2"></i>Tổng chi phí
+                </h5>
+                <h2 class="text-primary fw-bold mb-0" id="total_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</h2>
+            </div>
+        </div>
+    </div>
+</div>
 
     <input type="hidden" name="estimated_cost" id="total_estimated_cost_<?php echo $ctdd['maCTDon']; ?>" value="0">
     <input type="hidden" name="estimated_time" id="total_estimated_time_<?php echo $ctdd['maCTDon']; ?>" value="0">

@@ -266,24 +266,53 @@ switch ((int) $order['trangThai']) {
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
+                                <!-- Phương thức thanh toán -->
                                 <div class="col-md-6">
                                     <div class="d-flex align-items-start gap-3">
-                                        <i class="fas fa-money-bill-wave text-dark mt-1"></i>
+                                        <i class="fas fa-wallet text-dark mt-1"></i>
                                         <div>
-                                            <small class="text-muted d-block">Trạng thái thanh toán</small>
+                                            <small class="text-muted d-block">Phương thức thanh toán</small>
                                             <?php if ($order['thanhToan'] == 1): ?>
                                                 <span class="text-dark fw-bold">
-                                                    <i class="fas fa-check-circle me-1"></i>Đã thanh toán - Chuyển khoản
+                                                    <i class="fas fa-mobile-alt me-1"></i>Chuyển khoản VNPay
                                                 </span>
                                             <?php elseif ($order['thanhToan'] == 2): ?>
                                                 <span class="text-dark fw-bold">
-                                                    <i class="fas fa-check-circle me-1"></i>Đã thanh toán - Tiền mặt
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Tiền mặt
+                                                </span>
+                                            <?php elseif ($order['thanhToan'] == 3): ?>
+                                                <span class="text-dark fw-bold">
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Tiền mặt
                                                 </span>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
 
+                                <!-- Trạng thái thanh toán -->
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <i class="fas fa-money-bill-wave text-dark mt-1"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Trạng thái thanh toán</small>
+                                            <?php if ($order['thanhToan'] == 1): ?>
+                                                <span class="text-success fw-bold">
+                                                    <i class="fas fa-check-circle me-1"></i>Đã thanh toán
+                                                </span>
+                                            <?php elseif ($order['thanhToan'] == 2): ?>
+                                                <span class="text-warning fw-bold">
+                                                    <i class="fas fa-clock me-1"></i>Chờ xác nhận thanh toán
+                                                </span>
+                                            <?php elseif ($order['thanhToan'] == 3): ?>
+                                                <span class="text-success fw-bold">
+                                                    <i class="fas fa-check-circle me-1"></i>Đã thanh toán
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Ngày thanh toán -->
                                 <div class="col-md-6">
                                     <div class="d-flex align-items-start gap-3">
                                         <i class="fas fa-calendar-check text-dark mt-1"></i>
@@ -296,6 +325,7 @@ switch ((int) $order['trangThai']) {
                                     </div>
                                 </div>
 
+                                <!-- Tổng tiền -->
                                 <?php if (!empty($order['tongTien'])): ?>
                                     <div class="col-md-6">
                                         <div class="d-flex align-items-start gap-3">
@@ -310,7 +340,8 @@ switch ((int) $order['trangThai']) {
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if (!empty($order['diemSuDung'])): ?>
+                                <!-- Điểm sử dụng -->
+                                <?php if (!empty($order['diemSuDung']) && $order['diemSuDung'] > 0): ?>
                                     <div class="col-md-6">
                                         <div class="d-flex align-items-start gap-3">
                                             <i class="fas fa-gift text-dark mt-1"></i>
@@ -319,6 +350,46 @@ switch ((int) $order['trangThai']) {
                                                 <strong class="text-dark">
                                                     <?php echo number_format($order['diemSuDung']); ?> điểm
                                                 </strong>
+                                                <?php if (!empty($order['tienGiamGia'])): ?>
+                                                    <small class="text-success d-block">
+                                                        (Giảm <?php echo number_format($order['tienGiamGia']); ?>đ)
+                                                    </small>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Tiền giảm giá (nếu có) -->
+                                <?php if (!empty($order['tienGiamGia']) && $order['tienGiamGia'] > 0): ?>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <i class="fas fa-tag text-dark mt-1"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Tiền giảm giá</small>
+                                                <strong class="text-success">
+                                                    -<?php echo number_format($order['tienGiamGia']); ?>đ
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- Thông tin KTV xác nhận (nếu là tiền mặt) -->
+                                <?php if (($order['thanhToan'] == 2 || $order['thanhToan'] == 3) && !empty($order['maKTVXacNhan'])): ?>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <i class="fas fa-user-check text-dark mt-1"></i>
+                                            <div>
+                                                <small class="text-muted d-block">KTV xác nhận</small>
+                                                <strong class="text-dark">
+                                                    <?php echo htmlspecialchars($order['tenKTVXacNhan'] ?? 'Kỹ thuật viên'); ?>
+                                                </strong>
+                                                <?php if (!empty($order['ngayHoanThanh'])): ?>
+                                                    <small class="text-muted d-block">
+                                                        Lúc: <?php echo date('d/m/Y H:i', strtotime($order['ngayHoanThanh'])); ?>
+                                                    </small>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -556,11 +627,11 @@ switch ((int) $order['trangThai']) {
                                 <h5 class="text-dark mb-2"><?php echo htmlspecialchars($technicianInfo['hoTen']); ?></h5>
 
                                 <!-- Hiển thị số sao đánh giá -->
-                                <?php if (isset($technicianInfo['danhGia']) && $technicianInfo['danhGia'] > 0): ?>
+                                <?php if (isset($technicianInfo['tbDanhGia']) && $technicianInfo['tbDanhGia'] > 0): ?>
                                     <div class="mb-3">
                                         <span class="badge bg-warning text-dark fs-6">
                                             <i class="fas fa-star me-1"></i>
-                                            <?php echo number_format($technicianInfo['danhGia'], 1); ?>/5
+                                            <?php echo htmlspecialchars($technicianInfo['tbDanhGia']); ?>/5
                                         </span>
                                     </div>
                                 <?php else: ?>
@@ -606,7 +677,7 @@ switch ((int) $order['trangThai']) {
                                 Quay lại danh sách
                             </a>
 
-                            <?php if ($order['trangThai'] == 3): ?>
+                            <?php if ($order['trangThai'] == 4): ?>
                                 <!-- Chỉ hiển thị khi trạng thái = 3 (Đã hoàn thành) -->
                                 <a href="<?php echo url('hoa-don?id=' . $orderId); ?>" class="btn btn-outline-secondary">
                                     <i class="fas fa-file-invoice me-2"></i>
