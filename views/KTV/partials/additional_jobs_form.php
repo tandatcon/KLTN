@@ -1,11 +1,18 @@
 <?php
-if (!isset($ctdd) || !isset($chiTietGia))
+// additional_jobs_form.php - SỬA LẠI
+if (!isset($ctdd) || !isset($ctdd['chiTietGia']) || !isset($ctdd['chiTietGia']['success']) || !$ctdd['chiTietGia']['success']) {
+    echo "<div class='alert alert-warning'>Không thể tải bảng giá cho thiết bị này.</div>";
     return;
+}
+
+// LẤY DANH SÁCH PRICES TỪ CHI TIET GIA
+$prices = $ctdd['chiTietGia']['prices'] ?? [];
 ?>
 
 <!-- FORM ẨN ĐỂ LƯU CÔNG VIỆC PHÁT SINH -->
 <form id="save_additional_jobs_form_<?php echo $ctdd['maCTDon']; ?>" style="display: none;">
-    <input type="hidden" name="danh_sach_cong_viec_phat_sinh_json" id="danh_sach_cong_viec_phat_sinh_json_<?php echo $ctdd['maCTDon']; ?>">
+    <input type="hidden" name="danh_sach_cong_viec_phat_sinh_json"
+        id="danh_sach_cong_viec_phat_sinh_json_<?php echo $ctdd['maCTDon']; ?>">
 </form>
 
 <div class="card border-primary mb-3">
@@ -21,18 +28,19 @@ if (!isset($ctdd) || !isset($chiTietGia))
             <select class="form-select" id="job_select_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
                 onchange="toggleCustomJobInputPhatSinh(this, '<?php echo $ctdd['maCTDon']; ?>')">
                 <option value="">-- Chọn lỗi --</option>
-                <?php if (!empty($chiTietGia)): ?>
-                    <?php foreach ($chiTietGia as $congViec): ?>
-                        <option value="<?php echo htmlspecialchars($congViec['chitietloi']); ?>"
+                <?php if (!empty($prices)): ?>
+                    <?php foreach ($prices as $congViec): ?>
+                        <option value="<?php echo htmlspecialchars($congViec['tenLoi']); ?>"
                             data-range="<?php echo htmlspecialchars($congViec['khoangGia'] ?? ''); ?>"
-                            data-time="<?php echo isset($congViec['thoigiansuachua']) ? (int)$congViec['thoigiansuachua'] : 0; ?>">
-                            <?php echo htmlspecialchars($congViec['chitietloi']); ?>
-                            <?php if (!empty($congViec['khoangGia'])): ?>
-                                (<?php echo htmlspecialchars($congViec['khoangGia']); ?> - 
-                                <?php echo isset($congViec['thoigiansuachua']) ? (int)$congViec['thoigiansuachua'] : 0; ?> phút)
-                            <?php endif; ?>
+                            data-time="<?php echo isset($congViec['thoiGianSua']) ? (int) $congViec['thoiGianSua'] : 0; ?>"
+                            data-cost="<?php echo isset($congViec['gia']) ? (int) $congViec['gia'] : 0; ?>">
+                            <?php echo htmlspecialchars($congViec['tenLoi']); ?>
+                            (<?php echo $congViec['khoangGia'] ?? '0 VND'; ?> - <?php echo $congViec['thoiGianSua'] ?? 0; ?>
+                            phút)
                         </option>
                     <?php endforeach; ?>
+                <?php else: ?>
+                    <option value="">-- Không có dữ liệu giá --</option>
                 <?php endif; ?>
                 <option value="custom">-- Lỗi phát sinh khác --</option>
             </select>
@@ -59,9 +67,10 @@ if (!isset($ctdd) || !isset($chiTietGia))
         <div class="mb-3" id="time_input_div_phatsinh_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
             <label class="form-label fw-semibold">Thời gian sửa chữa (phút):</label>
             <input type="number" class="form-control" id="job_time_phatsinh_<?php echo $ctdd['maCTDon']; ?>"
-                placeholder="Nhập thời gian dự kiến (phút)" min="1" step="1" required>
+                placeholder="Nhập thời gian dự kiến (phút)" min="1" step="1">
             <div class="form-text">
-                <i class="fas fa-clock me-1"></i>Thời gian ước tính để hoàn thành công việc (bắt buộc cho lỗi phát sinh khác) - nhập theo phút
+                <i class="fas fa-clock me-1"></i>Thời gian ước tính để hoàn thành công việc (bắt buộc cho lỗi phát sinh
+                khác) - nhập theo phút
             </div>
         </div>
 
@@ -103,32 +112,36 @@ if (!isset($ctdd) || !isset($chiTietGia))
                 <tfoot id="repair_jobs_phatsinh_footer_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
                     <tr class="table-success fw-bold">
                         <td colspan="3" class="text-end">TỔNG CỘNG:</td>
-                        <td class="text-center" id="total_time_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0 phút</td>
+                        <td class="text-center" id="total_time_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0 phút
+                        </td>
                         <td class="text-end" id="total_phatsinh_table_<?php echo $ctdd['maCTDon']; ?>">0 VND</td>
                         <td></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
-        
+
         <!-- TỔNG KẾT PHÁT SINH -->
-        <div class="row g-3 mt-4 px-3" style="display: none;">
-    <div class="col-md-6">
-        <div class="text-center p-3 bg-light rounded border">
-            <h5 class="text-info mb-1">Tổng thời gian phát sinh</h5>
-            <h3 class="text-info fw-bold mb-0" id="total_time_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 phút</h3>
+        <div class="row g-3 mt-4 px-3">
+            <div class="col-md-6">
+                <div class="text-center p-3 bg-light rounded border">
+                    <h5 class="text-info mb-1">Tổng thời gian phát sinh</h5>
+                    <h3 class="text-info fw-bold mb-0" id="total_time_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">
+                        0 phút</h3>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-center p-3 bg-light rounded border">
+                    <h5 class="text-primary mb-1">Tổng chi phí phát sinh</h5>
+                    <h3 class="text-primary fw-bold mb-0" id="total_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0
+                        VND</h3>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="text-center p-3 bg-light rounded border">
-            <h5 class="text-primary mb-1">Tổng chi phí phát sinh</h5>
-            <h3 class="text-primary fw-bold mb-0" id="total_phatsinh_display_<?php echo $ctdd['maCTDon']; ?>">0 VND</h3>
-        </div>
-    </div>
-</div>
 
         <div align="center" class="mt-4 pb-3">
-            <button type="button" class="btn btn-success btn-lg px-5" onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">
+            <button type="button" class="btn btn-success btn-lg px-5"
+                onclick="saveAdditionalJobs('<?php echo $ctdd['maCTDon']; ?>')">
                 <i class="fas fa-save me-2"></i>Lưu các công việc phát sinh
             </button>
         </div>
@@ -163,7 +176,7 @@ if (!isset($ctdd) || !isset($chiTietGia))
                             <small class="text-muted">Click để phóng to</small>
                         </div>
                     </div>
-                    
+
                 <?php else: ?>
                     <!-- FORM UPLOAD MỚI - SỬ DỤNG CÙNG HÀM UPLOAD HIỆN TẠI -->
                     <form method="POST" enctype="multipart/form-data" class="ajax-upload-form">
@@ -213,31 +226,31 @@ if (!isset($ctdd) || !isset($chiTietGia))
 </div>
 
 <script>
-    // Khởi tạo mảng công việc phát sinh cho thiết bị này
-    if (typeof danhSachCongViecPhatSinh === 'undefined') {
-        danhSachCongViecPhatSinh = {};
-    }
-    danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] = [];
-
-    // Gắn sự kiện submit form
+    // Khởi tạo mảng + reset form ngay từ đầu
     document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('save_additional_jobs_form_<?php echo $ctdd['maCTDon']; ?>');
-        if (form) {
-            form.addEventListener('submit', function (e) {
-                const inputJSON = document.getElementById('danh_sach_cong_viec_phat_sinh_json_<?php echo $ctdd['maCTDon']; ?>');
-                if (inputJSON) {
-                    const danhSach = danhSachCongViecPhatSinh['<?php echo $ctdd['maCTDon']; ?>'] || [];
-                    inputJSON.value = JSON.stringify(danhSach);
-                }
-            });
+        const ma = '<?php echo $ctdd['maCTDon']; ?>';
+
+        // Khởi tạo mảng nếu chưa có
+        if (typeof danhSachCongViecPhatSinh === 'undefined') {
+            danhSachCongViecPhatSinh = {};
+        }
+        if (!danhSachCongViecPhatSinh[ma]) {
+            danhSachCongViecPhatSinh[ma] = [];
         }
 
-        // Hiển thị danh sách ban đầu
-        hienThiDanhSachCongViecPhatSinh('<?php echo $ctdd['maCTDon']; ?>');
+        // ẨN CHI PHÍ + HIỆN HINT MẶC ĐỊNH
+        const chiPhiRow = document.querySelector('#job_cost_phatsinh_' + ma)?.closest('.mb-3');
+        if (chiPhiRow) chiPhiRow.style.display = 'none';
 
-        // Khởi tạo upload area cho minh chứng hoàn thành
+        const hint = document.getElementById('cost_hint_phatsinh_' + ma);
+        if (hint) hint.innerHTML = '<i class="fas fa-info-circle"></i> Chọn lỗi để xem thông tin giá';
+
+        // Hiển thị danh sách cũ (nếu có)
+        hienThiDanhSachCongViecPhatSinh(ma);
+
+        // Upload ảnh hoàn thành
         <?php if (!$daUploadHoanThanh): ?>
-            initUploadArea('Completion', '<?php echo $ctdd['maCTDon']; ?>');
+            initUploadArea('Completion', ma);
         <?php endif; ?>
     });
 </script>

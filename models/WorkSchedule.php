@@ -12,10 +12,10 @@ class WorkSchedule
     public function getLichbyNV($idNV)
     {
         try {
-            $sql = "SELECT lc.*, u.name as nguoi_tao_ten
-                    FROM lichcung lc 
-                    JOIN kythuatvien u ON lc.maLichCung = u.maLichCung 
-                    WHERE maND = ?
+            $sql = "SELECT lc.*
+                    FROM lichlamviec lc 
+                    JOIN hosokythuatvien u ON lc.maLLV = u.maLLV 
+                    WHERE maKTV = ?
                     ";
             // echo "SELECT lc.*, u.name as nguoi_tao_ten
             // FROM lichcung lc 
@@ -33,66 +33,65 @@ class WorkSchedule
 
     // Kiểm tra xem ngày đó có phải ngày làm việc không
     public function layNgayLV($employeeId, $date)
-    {
-        try {
-            $dayOfWeek = date('w', strtotime($date)); // 0 = Chủ nhật, 1 = Thứ 2, ...
+{
+    try {
+        $dayOfWeek = date('w', strtotime($date)); // 0 = Chủ nhật, 1 = Thứ 2, ...
 
-            $sql = "SELECT l.ngayLamViec
-                    FROM lichcung l
-                    JOIN kythuatvien u ON u.maLichCung = l.maLichCung
-                    WHERE u.maND = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$employeeId]);
-            $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sql = "SELECT lc.*
+        FROM lichlamviec lc 
+        JOIN hosokythuatvien u ON lc.maLLV = u.maLLV 
+        WHERE maKTV = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$employeeId]);
+        $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            foreach ($schedules as $schedule) {
-                $workingDays = json_decode($schedule['ngayLamViec'], true);
-                if (in_array($dayOfWeek, $workingDays)) {
-                    return true;
-                }
+        foreach ($schedules as $schedule) {
+            $ngayLamViec = $schedule['ngayLamViec'] ?? '';
+            
+            // Xử lý chuỗi "2,3,4,5,6" thành mảng
+            $workingDays = array_map('trim', explode(',', $ngayLamViec));
+            $workingDays = array_filter($workingDays); // Loại bỏ phần tử rỗng
+            
+            if (in_array($dayOfWeek, $workingDays)) {
+                return true;
             }
-
-            return false;
-
-        } catch (Exception $e) {
-            error_log("isWorkingDay Error: " . $e->getMessage());
-            return false;
         }
+
+        return false;
+
+    } catch (Exception $e) {
+        error_log("isWorkingDay Error: " . $e->getMessage());
+        return false;
     }
+}
 
     // Gửi yêu cầu nghỉ phép
     public function xinNghi($employeeId, $startDate, $endDate, $totalDays, $reason)
-    {
-        try {
-            // Tính số ngày nghỉ
-            $start = new DateTime($startDate);
-            $end = new DateTime($endDate);
-            $interval = $start->diff($end);
-            $totalDays = $interval->days + 1; // +1 để bao gồm cả ngày bắt đầu
+{
+    try {
+        $sql = "INSERT INTO lichxinnghi (
+                    maNV, 
+                    ngayBatDau, 
+                    ngayKetThuc, 
+                    songayXN, 
+                    lyDo, 
+                    trangThai, 
+                    ngayTao
+                ) VALUES (?, ?, ?, ?, ?, '0', NOW())";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            $employeeId,
+            $startDate,
+            $endDate,
+            $totalDays,
+            $reason
+        ]);
 
-            $sql = "INSERT INTO lichxinnghi (
-                        maNV, 
-                        ngayBatDau, 
-                        ngayKetThuc, 
-                        songayXN, 
-                        lyDo, 
-                        trangThai, 
-                        ngayTao
-                    ) VALUES (?, ?, ?, ?, ?, '0', NOW())";
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
-                $employeeId,
-                $startDate,
-                $endDate,
-                $totalDays,
-                $reason
-            ]);
-
-        } catch (Exception $e) {
-            error_log("requestLeave Error: " . $e->getMessage());
-            return false;
-        }
+    } catch (Exception $e) {
+        error_log("requestLeave Error: " . $e->getMessage());
+        return false;
     }
+}
 
     // Lấy danh sách yêu cầu nghỉ phép của nhân viên
     public function getLichNP($maNV)

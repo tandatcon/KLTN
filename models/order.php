@@ -418,7 +418,7 @@ class Order
                 JOIN DonDichVu ddv ON lp.maDon = ddv.maDon
                 JOIN chitietdondichvu ctddv ON lp.maCTDon = ctddv.maCTDon
                 JOIN thietbi tb ON tb.maThietBi = ctddv.loai_thietbi
-                JOIN nguoidung c ON ddv.user_id = c.maND
+                JOIN nguoidung c ON ddv.maKH = c.maND
                 WHERE lp.maKTV = ?
                 AND lp.ngayLamViec BETWEEN ? AND ?
                 AND lp.trangThai != 'cancelled'

@@ -9,7 +9,10 @@ include __DIR__ . '/../header.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../function/quytrinh.php';
 require_once __DIR__ . '/../../function/donhang.php';
+require_once __DIR__ . '/../../controllers/cDevices.php';
 
+// Tạo instance controller và gọi phương thức
+$price = new cDevices();
 $orderController = new DonHangService($db);
 $orderModel = new Order($db);
 $serviceProcessModel = new QuyTrinhService($db);
@@ -326,11 +329,12 @@ foreach ($chiTietDonDichVu as $ctdd) {
                     <?php
                     $chanDoanThietBi = $serviceProcessModel->getDeviceDiagnosis($maDon, $ctdd['maCTDon']);
                     $chiTietSuaChuaThietBi = $serviceProcessModel->getDeviceRepairDetails($maDon, $ctdd['maCTDon']);
-                    $chiTietGia = $serviceProcessModel->getPriceDetail($ctdd['maThietBi']);
+                    $chiTietGia = $price->cGetPriceByModel($ctdd['maMau']);
                     $minhChungThietBi = $serviceProcessModel->getEvidenceImages($maDon, $ctdd['maCTDon']);
                     $daCoMinhChungDen = !empty($minhChungThietBi['minhchung_den']);
                     $daCoMinhChungThietBi = !empty($minhChungThietBi['minhchung_thietbi']);
                     $daUploadHoanThanh = !empty($minhChungThietBi["minhchunghoanthanh"]);
+                    $ctdd['chiTietGia'] = $chiTietGia;
 
                     $trangThaiThietBi = $ctdd['trangThai'] ?? 1;
                     $gioBatDau = $ctdd['gioBatDau'] ?? null;
@@ -1313,47 +1317,50 @@ include __DIR__ . '/../footer.php';
 
     // Các hàm hỗ trợ cho công việc sửa chữa
     function toggleCustomJobInput(select, maThietBi) {
-        const divLoiKhac = document.getElementById('custom_job_name_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
-        const inputThoiGian = document.getElementById('job_time_' + maThietBi);
-        const divThoiGian = document.getElementById('time_input_div_' + maThietBi); // THÊM DÒNG NÀY
-        const hintChiPhi = document.getElementById('cost_hint_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    const selected = select.options[select.selectedIndex];
+    const isCustom = selected.value === 'custom';
 
-        if (luaChon.value === 'custom') {
-            divLoiKhac.style.display = 'block';
-            if (divThoiGian) divThoiGian.style.display = 'block'; // HIỆN INPUT THỜI GIAN
-            inputChiPhi.placeholder = 'Nhập chi phí...';
-            if (inputThoiGian) inputThoiGian.value = '';
-            hintChiPhi.innerHTML = 'Lỗi khác - nhập chi phí và thời gian sửa chữa';
-            inputChiPhi.value = '';
-        } else if (luaChon.value) {
-            divLoiKhac.style.display = 'none';
-            if (divThoiGian) divThoiGian.style.display = 'none'; // ẨN INPUT THỜI GIAN
+    const divTenKhac   = document.getElementById('custom_job_name_' + maThietBi);
+    const divThoiGian  = document.getElementById('time_input_div_' + maThietBi);
+    const divChiPhiRow = document.getElementById('job_cost_' + maThietBi).closest('.row'); // dòng chứa label + input
+    const inputChiPhi  = document.getElementById('job_cost_' + maThietBi);
+    const hint         = document.getElementById('cost_hint_' + maThietBi);
 
-            const khoangGia = luaChon.getAttribute('data-range');
-            const thoiGian = luaChon.getAttribute('data-time') || '0';
-            inputChiPhi.value = '';
+    if (isCustom) {
+        // LỖI KHÁC → HIỆN ĐỦ 3 Ô: tên + thời gian + chi phí
+        divTenKhac.style.display = 'block';
+        divThoiGian.style.display = 'block';
+        divChiPhiRow.style.display = 'block';           // hiện lại cả dòng
+        inputChiPhi.removeAttribute('disabled');
+        inputChiPhi.setAttribute('required', 'required');
+        inputChiPhi.value = '';
+        inputChiPhi.placeholder = 'Nhập chi phí (từ 1.000 VND)';
+        hint.innerHTML = '<i class="fas fa-exclamation-circle text-warning"></i> Bắt buộc nhập tên lỗi, thời gian và chi phí';
 
-            // TỰ ĐỘNG ĐIỀN THỜI GIAN TỪ CSDL
-            if (inputThoiGian) inputThoiGian.value = thoiGian;
+    } else if (selected.value) {
+        // LỖI PHỔ BIẾN → ẨN Ô CHI PHÍ HOÀN TOÀN
+        divTenKhac.style.display = 'none';
+        divThoiGian.style.display = 'none';
+        divChiPhiRow.style.display = 'none';                    // ẨN CẢ DÒNG NHẬP GIÁ
+        inputChiPhi.value = '';
+        inputChiPhi.removeAttribute('required');
 
-            if (khoangGia) {
-                inputChiPhi.placeholder = khoangGia;
-                hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia} | Thời gian: ${thoiGian} phút`;
-            } else {
-                inputChiPhi.placeholder = 'Nhập chi phí...';
-                hintChiPhi.innerHTML = `Nhập chi phí sửa chữa | Thời gian: ${thoiGian} phút`;
-            }
-        } else {
-            divLoiKhac.style.display = 'none';
-            if (divThoiGian) divThoiGian.style.display = 'none'; // ẨN INPUT THỜI GIAN
-            inputChiPhi.value = '';
-            if (inputThoiGian) inputThoiGian.value = '';
-            inputChiPhi.placeholder = 'Nhập chi phí...';
-            hintChiPhi.innerHTML = 'Chọn lỗi để xem thông tin';
-        }
+        const giaTuDong = selected.getAttribute('data-cost');
+        const khoangGia = selected.getAttribute('data-range') || 'Không xác định';
+        const thoiGian  = selected.getAttribute('data-time') || '0';
+
+        hint.innerHTML = `<i class="fas fa-check-circle text-success"></i> 
+                          Chi phí tự động: <strong>${dinhDangSo(giaTuDong)} ₫</strong> 
+                          | Thời gian: <strong>${thoiGian} phút</strong>`;
+    } else {
+        // CHƯA CHỌN GÌ
+        divTenKhac.style.display = 'none';
+        divThoiGian.style.display = 'none';
+        divChiPhiRow.style.display = 'none';            // cũng ẩn luôn cho sạch
+        inputChiPhi.value = '';
+        hint.innerHTML = '<i class="fas fa-info-circle"></i> Chọn lỗi để xem thông tin giá';
     }
+}
 
     // Hàm kiểm tra chi phí có nằm trong khoảng giá hay không
     function validateCostInRange(cost, rangeString) {
@@ -1372,99 +1379,90 @@ include __DIR__ . '/../footer.php';
     }
 
     function addRepairJob(maThietBi) {
-        const select = document.getElementById('job_select_' + maThietBi);
-        const inputLoiKhac = document.getElementById('custom_job_input_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
-        const inputThoiGian = document.getElementById('job_time_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    const select = document.getElementById('job_select_' + maThietBi);
+    const selected = select.options[select.selectedIndex];
+    const isCustom = selected.value === 'custom';
 
-        let tenCongViec = '';
-        let chiPhiCongViec = inputChiPhi.value;
-        let thoiGianCongViec = inputThoiGian ? inputThoiGian.value : 0;
-        let khoangGia = '';
-
-        // Kiểm tra chi phí
-        if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
-            showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
-            inputChiPhi.focus();
-            return;
-        }
-
-        chiPhiCongViec = parseFloat(chiPhiCongViec);
-        thoiGianCongViec = parseFloat(thoiGianCongViec) || 0;
-
-        // KIỂM TRA THỜI GIAN CHO LỖI KHÁC
-        if (luaChon.value === 'custom') {
-            tenCongViec = inputLoiKhac.value.trim();
-            khoangGia = 'Tự nhập';
-
-            if (!tenCongViec) {
-                showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
-                inputLoiKhac.focus();
-                return;
-            }
-
-            // KIỂM TRA CHI PHÍ LỖI KHÁC PHẢI TRÊN 1000 VND
-            if (chiPhiCongViec < 1000) {
-                showConfirm('Chi phí cho lỗi khác phải từ 1.000 VND trở lên!', 'Thông báo');
-                inputChiPhi.focus();
-                return;
-            }
-
-            // BẮT BUỘC NHẬP THỜI GIAN CHO LỖI KHÁC
-            if (!inputThoiGian || !inputThoiGian.value || parseFloat(inputThoiGian.value) <= 0) {
-                showConfirm('Vui lòng nhập thời gian sửa chữa cho lỗi khác!', 'Thông báo');
-                if (inputThoiGian) inputThoiGian.focus();
-                return;
-            }
-        } else if (luaChon.value) {
-            tenCongViec = luaChon.text.split('(')[0].trim();
-            khoangGia = luaChon.getAttribute('data-range') || 'Không có';
-
-            // KIỂM TRA KHOẢNG GIÁ
-            if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
-                if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
-                    showConfirm(
-                        'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
-                        'Thông báo',
-                    );
-                    return;
-                }
-            }
-
-            // KIỂM TRA CHI PHÍ TỐI THIỂU CHO LỖI THÔNG THƯỜNG
-            if (chiPhiCongViec < 1000) {
-                showConfirm('Chi phí sửa chữa phải từ 1.000 VND trở lên!', 'Thông báo');
-                inputChiPhi.focus();
-                return;
-            }
-        } else {
-            showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
-            return;
-        }
-
-        const maCongViec = 'congviec_' + Date.now();
-        danhSachCongViec[maThietBi].push({
-            id: maCongViec,
-            name: tenCongViec,
-            cost: chiPhiCongViec,
-            time: thoiGianCongViec,
-            priceRange: khoangGia
-        });
-
-        hienThiDanhSachCongViec(maThietBi);
-
-        // Reset
-        select.value = '';
-        inputLoiKhac.value = '';
-        inputChiPhi.value = '';
-        if (inputThoiGian) inputThoiGian.value = '';
-        document.getElementById('custom_job_name_' + maThietBi).style.display = 'none';
-        document.getElementById('time_input_div_' + maThietBi).style.display = 'none'; // ẨN INPUT THỜI GIAN
-        document.getElementById('cost_hint_' + maThietBi).innerHTML = 'Chọn lỗi để xem thông tin';
-
-        showConfirm('Đã thêm công việc vào danh sách', 'Thành công');
+    // === 1. KIỂM TRA CHỌN LỖI ===
+    if (!selected.value || selected.value === '') {
+        showConfirm('Vui lòng chọn một lỗi sửa chữa!', 'Lỗi nhập liệu');
+        return;
     }
+
+    let tenCongViec, chiPhiCongViec, thoiGianCongViec, khoangGia;
+
+    if (isCustom) {
+        // ================== TRƯỜNG HỢP LỖI KHÁC ==================
+        const inputTen = document.getElementById('custom_job_input_' + maThietBi);
+        const inputThoiGian = document.getElementById('job_time_' + maThietBi);
+        const inputChiPhi = document.getElementById('job_cost_' + maThietBi);
+
+        const ten = inputTen?.value.trim();
+        const tg = inputThoiGian?.value;
+        const cp = inputChiPhi?.value;
+
+        if (!ten) {
+            showConfirm('Vui lòng nhập tên lỗi khác!', 'Thiếu thông tin'); 
+            inputTen?.focus(); 
+            return;
+        }
+        if (!tg || tg <= 0) {
+            showConfirm('Vui lòng nhập thời gian sửa chữa (phút)!', 'Thiếu thông tin'); 
+            inputThoiGian?.focus(); 
+            return;
+        }
+        if (!cp || cp < 1000) {
+            showConfirm('Chi phí cho lỗi khác phải từ 1.000 VND trở lên!', 'Lỗi chi phí'); 
+            inputChiPhi?.focus(); 
+            return;
+        }
+
+        tenCongViec = ten;
+        chiPhiCongViec = parseInt(cp);
+        thoiGianCongViec = parseFloat(tg);
+        khoangGia = 'Tự nhập';
+
+        // Reset form custom
+        inputTen.value = '';
+        inputThoiGian.value = '';
+        inputChiPhi.value = '';
+
+    } else {
+        // ================== TRƯỜNG HỢP LỖI CÓ TRONG BẢNG GIÁ ==================
+        const dataCost = selected.getAttribute('data-cost');
+        const dataTime = selected.getAttribute('data-time');
+
+        if (!dataCost || !dataTime) {
+            showConfirm('Lỗi này chưa có giá. Vui lòng chọn lỗi khác!', 'Lỗi dữ liệu');
+            return;
+        }
+
+        tenCongViec = selected.value;
+        chiPhiCongViec = parseInt(dataCost);  // LẤY TỰ ĐỘNG, KHÔNG CHO SỬA
+        thoiGianCongViec = parseInt(dataTime);
+        khoangGia = selected.getAttribute('data-range') || 'Không xác định';
+    }
+
+    // === THÊM VÀO DANH SÁCH ===
+    if (!danhSachCongViec[maThietBi]) danhSachCongViec[maThietBi] = [];
+
+    const maCongViec = 'cv_' + Date.now();
+    danhSachCongViec[maThietBi].push({
+        id: maCongViec,
+        name: tenCongViec,
+        cost: chiPhiCongViec,
+        time: thoiGianCongViec,
+        priceRange: khoangGia,
+        isCustom: isCustom
+    });
+
+    // === CẬP NHẬT GIAO DIỆN ===
+    hienThiDanhSachCongViec(maThietBi);
+    select.value = '';
+    toggleCustomJobInput(select, maThietBi); // reset form
+
+    showConfirm('Đã thêm công việc thành công!', 'Thành công', null, null, 'success');
+}
 
     function hienThiDanhSachCongViec(maThietBi) {
         const container = document.getElementById('repair_jobs_table_' + maThietBi);
@@ -1627,145 +1625,139 @@ include __DIR__ . '/../footer.php';
             });
         }
     }
-    function toggleCustomJobInputPhatSinh(select, maThietBi) {
-        const divLoiKhac = document.getElementById('custom_job_name_phatsinh_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
-        const inputThoiGian = document.getElementById('job_time_phatsinh_' + maThietBi);
-        const divThoiGian = document.getElementById('time_input_div_phatsinh_' + maThietBi);
-        const hintChiPhi = document.getElementById('cost_hint_phatsinh_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
+    // HÀM 1: toggleCustomJobInputPhatSinh – Ẩn/hiện + disable input chi phí
+function toggleCustomJobInputPhatSinh(select, maThietBi) {
+    const selected = select.options[select.selectedIndex];
+    const isCustom = selected.value === 'custom';
 
-        if (luaChon.value === 'custom') {
-            divLoiKhac.style.display = 'block';
-            if (divThoiGian) divThoiGian.style.display = 'block';
-            inputChiPhi.placeholder = 'Nhập chi phí...';
-            if (inputThoiGian) inputThoiGian.value = '';
-            hintChiPhi.innerHTML = 'Lỗi phát sinh khác - nhập chi phí và thời gian sửa chữa (phút)';
-            inputChiPhi.value = '';
-        } else if (luaChon.value) {
-            divLoiKhac.style.display = 'none';
-            if (divThoiGian) divThoiGian.style.display = 'none';
+    // Các phần tử cần điều khiển
+    const divTenKhac   = document.getElementById('custom_job_name_phatsinh_' + maThietBi);
+    const divThoiGian  = document.getElementById('time_input_div_phatsinh_' + maThietBi);
+    const divChiPhiRow = document.getElementById('job_cost_phatsinh_' + maThietBi).closest('.mb-3');
+    const inputChiPhi  = document.getElementById('job_cost_phatsinh_' + maThietBi);
+    const hint         = document.getElementById('cost_hint_phatsinh_' + maThietBi);
 
-            const khoangGia = luaChon.getAttribute('data-range');
-            const thoiGianPhut = luaChon.getAttribute('data-time') || '0';
+    if (isCustom) {
+        // LỖI PHÁT SINH KHÁC → HIỆN ĐỦ 3 Ô, BẮT BUỘC NHẬP
+        divTenKhac.style.display = 'block';
+        divThoiGian.style.display = 'block';
+        divChiPhiRow.style.display = 'block';
 
-            inputChiPhi.value = '';
-
-            // HIỆN SỐ PHÚT LUÔN, KHÔNG CHUYỂN ĐỔI
-            if (inputThoiGian) inputThoiGian.value = thoiGianPhut;
-
-            if (khoangGia) {
-                inputChiPhi.placeholder = khoangGia;
-                hintChiPhi.innerHTML = `<i class="fas fa-info-circle me-1"></i>Khoảng giá tham khảo: ${khoangGia} | Thời gian: ${thoiGianPhut} phút`;
-            } else {
-                inputChiPhi.placeholder = 'Nhập chi phí...';
-                hintChiPhi.innerHTML = `Nhập chi phí sửa chữa | Thời gian: ${thoiGianPhut} phút`;
-            }
-        } else {
-            divLoiKhac.style.display = 'none';
-            if (divThoiGian) divThoiGian.style.display = 'none';
-            inputChiPhi.value = '';
-            if (inputThoiGian) inputThoiGian.value = '';
-            inputChiPhi.placeholder = 'Nhập chi phí...';
-            hintChiPhi.innerHTML = 'Chọn lỗi để xem thông tin';
-        }
-    }
-    function addRepairJobPhatSinh(maThietBi) {
-        const select = document.getElementById('job_select_phatsinh_' + maThietBi);
-        const inputLoiKhac = document.getElementById('custom_job_input_phatsinh_' + maThietBi);
-        const inputChiPhi = document.getElementById('job_cost_phatsinh_' + maThietBi);
-        const inputThoiGian = document.getElementById('job_time_phatsinh_' + maThietBi);
-        const luaChon = select.options[select.selectedIndex];
-
-        let tenCongViec = '';
-        let chiPhiCongViec = inputChiPhi.value;
-        let thoiGianCongViec = 0;
-        let khoangGia = '';
-
-        if (!chiPhiCongViec || isNaN(chiPhiCongViec) || parseFloat(chiPhiCongViec) <= 0) {
-            showConfirm('Vui lòng nhập chi phí hợp lệ!', 'Thông báo');
-            inputChiPhi.focus();
-            return;
-        }
-
-        chiPhiCongViec = parseFloat(chiPhiCongViec);
-
-        if (luaChon.value === 'custom') {
-            tenCongViec = inputLoiKhac.value.trim();
-            khoangGia = 'Tự nhập';
-
-            if (!tenCongViec) {
-                showConfirm('Vui lòng nhập tên lỗi!', 'Thông báo');
-                inputLoiKhac.focus();
-                return;
-            }
-
-            // KIỂM TRA CHI PHÍ LỖI KHÁC PHÁT SINH PHẢI TRÊN 1000 VND
-            if (chiPhiCongViec < 1000) {
-                showConfirm('Chi phí cho lỗi phát sinh khác phải từ 1.000 VND trở lên!', 'Thông báo');
-                inputChiPhi.focus();
-                return;
-            }
-
-            // BÂY GIỜ NHẬP THEO PHÚT
-            if (!inputThoiGian || !inputThoiGian.value || parseFloat(inputThoiGian.value) <= 0) {
-                showConfirm('Vui lòng nhập thời gian sửa chữa cho lỗi phát sinh khác!', 'Thông báo');
-                if (inputThoiGian) inputThoiGian.focus();
-                return;
-            }
-
-            // GIỮ NGUYÊN PHÚT, KHÔNG CHUYỂN ĐỔI
-            thoiGianCongViec = parseFloat(inputThoiGian.value);
-        } else if (luaChon.value) {
-            tenCongViec = luaChon.text.split('(')[0].trim();
-            khoangGia = luaChon.getAttribute('data-range') || 'Không có';
-
-            // LẤY TRỰC TIẾP PHÚT TỪ DATABASE
-            thoiGianCongViec = parseFloat(luaChon.getAttribute('data-time')) || 0;
-
-            // KIỂM TRA CHI PHÍ TỐI THIỂU CHO LỖI PHÁT SINH THÔNG THƯỜNG
-            if (chiPhiCongViec < 1000) {
-                showConfirm('Chi phí sửa chữa phát sinh phải từ 1.000 VND trở lên!', 'Thông báo');
-                inputChiPhi.focus();
-                return;
-            }
-
-            if (khoangGia && khoangGia !== 'Không có' && khoangGia !== 'Tự nhập') {
-                if (!validateCostInRange(chiPhiCongViec, khoangGia)) {
-                    showConfirm(
-                        'Chi phí nhập không nằm trong khoảng giá ' + khoangGia,
-                        'Thông báo',
-                    );
-                    return;
-                }
-            }
-        } else {
-            showConfirm('Vui lòng chọn lỗi!', 'Thông báo');
-            return;
-        }
-
-        const maCongViec = 'congviec_phatsinh_' + Date.now();
-        danhSachCongViecPhatSinh[maThietBi].push({
-            id: maCongViec,
-            name: tenCongViec,
-            cost: chiPhiCongViec,
-            time: thoiGianCongViec, // LƯU THEO PHÚT
-            priceRange: khoangGia
-        });
-
-        hienThiDanhSachCongViecPhatSinh(maThietBi);
-
-        // Reset
-        select.value = '';
-        inputLoiKhac.value = '';
+        inputChiPhi.removeAttribute('disabled');
+        inputChiPhi.setAttribute('required', 'required');
         inputChiPhi.value = '';
-        if (inputThoiGian) inputThoiGian.value = '';
-        document.getElementById('custom_job_name_phatsinh_' + maThietBi).style.display = 'none';
-        document.getElementById('time_input_div_phatsinh_' + maThietBi).style.display = 'none';
-        document.getElementById('cost_hint_phatsinh_' + maThietBi).innerHTML = 'Nhập chi phí sửa chữa';
+        inputChiPhi.placeholder = 'Nhập chi phí (từ 1.000 VND)';
 
-        showConfirm('Đã thêm công việc vào danh sách phát sinh', 'Thành công');
+        hint.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> <strong>Bắt buộc nhập tên lỗi, thời gian và chi phí</strong>';
+
+    } else if (selected.value) {
+        // LỖI CÓ TRONG BẢNG GIÁ → ẨN Ô CHI PHÍ HOÀN TOÀN
+        divTenKhac.style.display = 'none';
+        divThoiGian.style.display = 'none';
+        divChiPhiRow.style.display = 'none';
+
+        inputChiPhi.value = '';
+        inputChiPhi.removeAttribute('required');
+
+        const cost = selected.getAttribute('data-cost') || 0;
+        const time = selected.getAttribute('data-time') || 0;
+        const range = selected.getAttribute('data-range') || 'Không xác định';
+
+        hint.innerHTML = `<i class="fas fa-check-circle text-success"></i> 
+                          Chi phí tự động: <strong>${dinhDangSo(cost)} ₫</strong> 
+                          | Thời gian: <strong>${time} phút</strong>`;
+
+    } else {
+        // CHƯA CHỌN GÌ
+        divTenKhac.style.display = 'none';
+        divThoiGian.style.display = 'none';
+        divChiPhiRow.style.display = 'none';
+        inputChiPhi.value = '';
+        hint.innerHTML = '<i class="fas fa-info-circle"></i> Chọn lỗi để xem thông tin giá';
     }
+}
+    // HÀM 2: addRepairJobPhatSinh – Thêm công việc phát sinh (đã sửa logic hoàn hảo)
+function addRepairJobPhatSinh(maThietBi) {
+    const select = document.getElementById('job_select_phatsinh_' + maThietBi);
+    const selected = select.options[select.selectedIndex];
+    const isCustom = selected.value === 'custom';
+
+    // Kiểm tra đã chọn lỗi chưa
+    if (!selected.value || selected.value === '') {
+        showConfirm('Vui lòng chọn một lỗi phát sinh!', 'Thông báo');
+        return;
+    }
+
+    let tenCongViec, chiPhi, thoiGian, khoangGia;
+
+    if (isCustom) {
+        // LỖI KHÁC → BẮT BUỘC NHẬP ĐỦ
+        const inputTen = document.getElementById('custom_job_input_phatsinh_' + maThietBi);
+        const inputTG  = document.getElementById('job_time_phatsinh_' + maThietBi);
+        const inputCP  = document.getElementById('job_cost_phatsinh_' + maThietBi);
+
+        const ten = inputTen?.value.trim();
+        const tg  = parseInt(inputTG?.value) || 0;
+        const cp  = parseInt(inputCP?.value) || 0;
+
+        if (!ten) {
+            showConfirm('Vui lòng nhập tên lỗi phát sinh!', 'Thiếu tên lỗi');
+            inputTen?.focus();
+            return;
+        }
+        if (tg < 1) {
+            showConfirm('Thời gian sửa chữa phải ≥ 1 phút!', 'Lỗi thời gian');
+            inputTG?.focus();
+            return;
+        }
+        if (cp < 1000) {
+            showConfirm('Chi phí phải từ 1.000 VND trở lên!', 'Lỗi chi phí');
+            inputCP?.focus();
+            return;
+        }
+
+        tenCongViec = ten;
+        chiPhi = cp;
+        thoiGian = tg;
+        khoangGia = 'Tự nhập';
+
+        // Reset form
+        inputTen.value = '';
+        inputTG.value = '';
+        inputCP.value = '';
+
+    } else {
+        // LỖI CÓ TRONG BẢNG GIÁ → LẤY TỰ ĐỘNG
+        tenCongViec = selected.value;
+        chiPhi      = parseInt(selected.getAttribute('data-cost') || 0);
+        thoiGian    = parseInt(selected.getAttribute('data-time') || 0);
+        khoangGia   = selected.getAttribute('data-range') || 'Không xác định';
+    }
+
+    // Thêm vào danh sách
+    if (!danhSachCongViecPhatSinh[maThietBi]) {
+        danhSachCongViecPhatSinh[maThietBi] = [];
+    }
+
+    danhSachCongViecPhatSinh[maThietBi].push({
+        id: 'ps_' + Date.now(),
+        name: tenCongViec,
+        cost: chiPhi,
+        time: thoiGian,
+        priceRange: khoangGia,
+        isCustom: isCustom
+    });
+
+    // Cập nhật giao diện
+    hienThiDanhSachCongViecPhatSinh(maThietBi);
+    select.value = '';
+    toggleCustomJobInputPhatSinh(select, maThietBi);
+
+    showConfirm('Đã thêm công việc phát sinh thành công!', 'Thành công', null, null, 'success');
+    
+}
+
+
     function hienThiDanhSachCongViecPhatSinh(maThietBi) {
         const container = document.getElementById('repair_jobs_phatsinh_table_' + maThietBi);
         const footer = document.getElementById('repair_jobs_phatsinh_footer_' + maThietBi);
@@ -1926,7 +1918,7 @@ function processPayment() {
     );
 }
 
-// Hàm thực hiện thanh toán qua AJAX
+
 // Hàm thực hiện thanh toán qua AJAX
 async function confirmPayment() {
     const button = document.querySelector('.btn-payment');

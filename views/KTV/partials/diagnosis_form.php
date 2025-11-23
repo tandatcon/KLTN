@@ -1,8 +1,12 @@
 <?php
-// diagnosis_form.php - PHIÊN BẢN HOÀN CHỈNH 2025
-if (!isset($ctdd) || !isset($chiTietGia)) {
+// diagnosis_form.php - SỬA LỖI QUAN TRỌNG
+if (!isset($ctdd) || !isset($chiTietGia) || !isset($chiTietGia['success']) || !$chiTietGia['success']) {
+    echo "<div class='alert alert-warning'>Không thể tải bảng giá cho thiết bị này.</div>";
     return;
 }
+
+// LẤY DANH SÁCH PRICES TỪ CHI TIET GIA
+$prices = $chiTietGia['prices'] ?? [];
 ?>
 
 <form id="diagnosis_form_<?php echo $ctdd['maCTDon']; ?>">
@@ -41,43 +45,47 @@ if (!isset($ctdd) || !isset($chiTietGia)) {
                     <select class="form-select" id="job_select_<?php echo $ctdd['maCTDon']; ?>"
                         onchange="toggleCustomJobInput(this, '<?php echo $ctdd['maCTDon']; ?>')">
                         <option value="">-- Chọn lỗi sửa chữa --</option>
-                        <?php foreach ($chiTietGia as $cv): ?>
-                            <option value="<?php echo htmlspecialchars($cv['chitietloi']); ?>"
-                                data-range="<?php echo htmlspecialchars($cv['khoangGia'] ?? ''); ?>"
-                                data-time="<?php echo $cv['thoigiansuachua'] ?? 0; ?>"
-                                data-cost="<?php echo $cv['gia'] ?? 0; ?>">
-                                <?php echo htmlspecialchars($cv['chitietloi']); ?>
-                                (<?php echo $cv['khoangGia']; ?> - <?php echo $cv['thoigiansuachua']; ?>phút)
-                            </option>
-                        <?php endforeach; ?>
+                        <?php if (!empty($prices)): ?>
+                            <?php foreach ($prices as $cv): ?>
+                                <option value="<?php echo htmlspecialchars($cv['tenLoi']); ?>"
+                                    data-range="<?php echo htmlspecialchars($cv['gia'] ?? ''); ?>"
+                                    data-time="<?php echo $cv['thoiGianSua'] ?? 0; ?>"
+                                    data-cost="<?php echo $cv['gia'] ?? 0; ?>">
+                                    <?php echo htmlspecialchars($cv['tenLoi']); ?>
+                                    (<?php echo $cv['khoangGia']; ?> - <?php echo $cv['thoiGianSua']; ?>phút)
+                                </option>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <option value="">-- Không có dữ liệu giá --</option>
+                        <?php endif; ?>
                         <option value="custom">-- Lỗi khác (tự nhập) --</option>
                     </select>
                 </div>
             </div>
-<!-- LỖI KHÁC -->
-<div class="row mb-3" id="custom_job_name_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
+
+            <!-- LỖI KHÁC -->
+            <div class="row mb-3" id="custom_job_name_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
                 <div class="col-12">
                     <label class="form-label fw-bold">Tên lỗi khác:</label>
                     <input type="text" class="form-control" id="custom_job_input_<?php echo $ctdd['maCTDon']; ?>"
                         placeholder="Nhập tên lỗi khác...">
                 </div>
             </div>
-<!-- THÊM INPUT THỜI GIAN VÀO TRANG PHỤ -->
-<div class="row mb-3" id="time_input_div_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
-    <div class="col-12">
-        <label class="form-label fw-bold">Thời gian sửa chữa (phút):</label>
-        <input type="number" class="form-control" id="job_time_<?php echo $ctdd['maCTDon']; ?>"
-            placeholder="Nhập thời gian dự kiến" min="0.1" step="0.5" required>
-        <div class="form-text">
-            <i class="fas fa-clock me-1"></i>Thời gian ước tính để hoàn thành(DVT phút)
-        </div>
-    </div>
-</div>
 
-            
+            <!-- THÊM INPUT THỜI GIAN -->
+            <div class="row mb-3" id="time_input_div_<?php echo $ctdd['maCTDon']; ?>" style="display:none;">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Thời gian sửa chữa (phút):</label>
+                    <input type="number" class="form-control" id="job_time_<?php echo $ctdd['maCTDon']; ?>"
+                        placeholder="Nhập thời gian dự kiến" min="0.1" step="0.5" required>
+                    <div class="form-text">
+                        <i class="fas fa-clock me-1"></i>Thời gian ước tính để hoàn thành(DVT phút)
+                    </div>
+                </div>
+            </div>
 
             <!-- CHI PHÍ -->
-            <div class="row mb-3">
+            <div class="row mb-3" style="display:none;">
                 <div class="col-12">
                     <label class="form-label fw-bold">Chi phí thực tế (VND):</label>
                     <input type="number" class="form-control" id="job_cost_<?php echo $ctdd['maCTDon']; ?>"

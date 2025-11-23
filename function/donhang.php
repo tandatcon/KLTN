@@ -286,9 +286,11 @@ class DonHangService
             $sql = "SELECT 
                     ctddv.*,
                     tb.tenThietBi,
-                    tb.maThietBi
+                    tb.maThietBi, h.tenHang, m.tenMau
                 FROM chitietdondichvu ctddv
                 JOIN thietbi tb ON ctddv.maThietBi = tb.maThietBi
+                JOIN hangsanxuat h on h.maHang=ctddv.maHang
+                join mausanpham m on m.maMau=ctddv.maMau
                 WHERE ctddv.maDon = ?
                 ORDER BY ctddv.maCTDon";
 
@@ -453,7 +455,8 @@ class DonHangService
             ctdd.minhchung_thietbi,
             tb.maThietBi,
             tb.tenThietBi,
-            b.hoTen as tenKTV
+            b.hoTen as tenKTV,
+            ctdd.maMau
         FROM chitietdondichvu ctdd 
         JOIN thietbi tb ON tb.maThietBi = ctdd.MaThietBi
         JOIN dondichvu dd on dd.maDon=ctdd.maDon

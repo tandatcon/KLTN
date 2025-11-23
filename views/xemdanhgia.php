@@ -54,7 +54,8 @@ $myRatings = $donHangService->getMyRatings($maKH);
                                         <!-- Sao -->
                                         <div class="mb-2">
                                             <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <i class="fas fa-star <?php echo $i <= $rating['diemDanhGia'] ? 'text-warning' : 'text-muted'; ?>"></i>
+                                                <i
+                                                    class="fas fa-star <?php echo $i <= $rating['diemDanhGia'] ? 'text-warning' : 'text-muted'; ?>"></i>
                                             <?php endfor; ?>
                                             <span class="ms-2 fw-bold"><?php echo $rating['diemDanhGia']; ?>/5</span>
                                         </div>
@@ -69,10 +70,14 @@ $myRatings = $donHangService->getMyRatings($maKH);
                                         <!-- Tiêu chí -->
                                         <?php
                                         $criteria = [];
-                                        if ($rating['chuyenMon'] == 1) $criteria[] = 'Chuyên môn tốt';
-                                        if ($rating['thaiDo'] == 1) $criteria[] = 'Thái độ tốt';
-                                        if ($rating['dungGio'] == 1) $criteria[] = 'Đúng giờ';
-                                        if ($rating['hieuQua'] == 1) $criteria[] = 'Hiệu quả cao';
+                                        if ($rating['chuyenMon'] == 1)
+                                            $criteria[] = 'Chuyên môn tốt';
+                                        if ($rating['thaiDo'] == 1)
+                                            $criteria[] = 'Thái độ tốt';
+                                        if ($rating['dungGio'] == 1)
+                                            $criteria[] = 'Đúng giờ';
+                                        if ($rating['hieuQua'] == 1)
+                                            $criteria[] = 'Hiệu quả cao';
                                         ?>
                                         <?php if (!empty($criteria)): ?>
                                             <div class="mb-3">
@@ -84,7 +89,8 @@ $myRatings = $donHangService->getMyRatings($maKH);
 
                                         <!-- Thời gian đánh giá -->
                                         <small class="text-muted">
-                                            Đánh giá lúc <?php echo date('H:i, d/m/Y', strtotime($rating['thoiGianDanhGia'])); ?>
+                                            Đánh giá lúc
+                                            <?php echo date('H:i, d/m/Y', strtotime($rating['thoiGianDanhGia'])); ?>
                                         </small>
 
                                     </div>
@@ -93,7 +99,7 @@ $myRatings = $donHangService->getMyRatings($maKH);
                                     <div class="col-md-4 text-md-end text-center mt-3 mt-md-0">
                                         <?php if (!empty($rating['hoTenKTV'])): ?>
                                             <div class="avatar bg-primary text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-2"
-                                                 style="width: 56px; height: 56px; font-size: 1.4rem;">
+                                                style="width: 56px; height: 56px; font-size: 1.4rem;">
                                                 <?php echo strtoupper(substr($rating['hoTenKTV'], 0, 1)); ?>
                                             </div>
                                             <div>

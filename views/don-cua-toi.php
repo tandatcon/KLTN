@@ -157,9 +157,9 @@ include VIEWS_PATH . '/header.php';
                                 <i class="fas fa-calendar-plus me-2"></i>
                                 <span>Đặt dịch vụ mới</span>
                             </a>
-                            <a href="<?php echo url('home#contact'); ?>" class="btn btn-outline-secondary">
+                            <a href="<?php echo url('xemdanhgia'); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-headset me-2"></i>
-                                <span>Hỗ trợ</span>
+                                <span>Xem đánh giá của bạn</span>
                             </a>
                         </div>
                     </div>
@@ -238,6 +238,12 @@ include VIEWS_PATH . '/header.php';
                                     $statusValue = 'processing';
                                     break;
                                 case 3:
+                                        $statusClass = 'bg-info text-white';
+                                        $statusText = 'Đang thực hiện';
+                                        $statusIcon = 'fas fa-tasks';
+                                        $statusValue = 'processing';
+                                        break;
+                                case 4:
                                     $statusClass = 'bg-success text-white';
                                     $statusText = 'Hoàn thành';
                                     $statusIcon = 'fas fa-check-circle';

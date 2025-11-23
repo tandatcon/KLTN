@@ -454,11 +454,11 @@ switch ((int) $order['trangThai']) {
                                                                 <div class="row">
                                                                     <div class="col-md-6 mb-3">
                                                                         <small class="text-muted d-block">Tên thiết bị</small>
-                                                                        <strong><?php echo htmlspecialchars($device['tenThietBi'] ?? 'N/A'); ?></strong>
+                                                                        <strong><?php echo htmlspecialchars($device['tenThietBi']. ' '.$device['tenHang']?? 'N/A'); ?></strong>
                                                                     </div>
                                                                     <div class="col-md-6 mb-3">
                                                                         <small class="text-muted d-block">Phiên bản</small>
-                                                                        <strong><?php echo !empty($device['phienban']) ? htmlspecialchars($device['phienban']) : 'N/A'; ?></strong>
+                                                                        <strong><?php echo !empty($device['tenMau']) ? htmlspecialchars($device['tenMau']) : 'N/A'; ?></strong>
                                                                     </div>
                                                                     <?php if (!empty($device['motaTinhTrang'])): ?>
                                                                         <div class="col-12">

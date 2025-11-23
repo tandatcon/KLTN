@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 
 if (!defined('BASE_URL')) {
@@ -181,40 +180,60 @@ $canBook = !empty($userInfo['diaChi']) &&
                     <div class="card border-gray">
                         <div class="card-body">
                             <h5 class="card-title text-primary mb-3">
-                                <i class="fas fa-tools me-2"></i>Mô tả dòng máy, sự cố
+                                <i class="fas fa-tools me-2"></i>Thông tin thiết bị cần sửa
                             </h5>
                             <div class="devices-container">
-                                <div class="device-item mb-3">
-                                    <div class="row g-2">
+                                <div class="device-item mb-4 p-4 border rounded bg-light" data-index="1">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="text-primary mb-0">Thiết bị 1</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger d-none btn-remove-device">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </div>
+
+                                    <div class="row g-3">
+                                        <!-- 1. Chọn Thiết bị -->
                                         <div class="col-12">
-                                            <h6 class="mb-0 text-primary">Thiết bị 1</h6>
-                                            <label class="form-label">Loại thiết bị *</label>
-                                            <select class="form-select input-gray device-type-select"
-                                                name="device_types[]">
-                                                <option value="">Chọn loại thiết bị</option>
-                                                <?php foreach ($devices as $device): ?>
-                                                    <option value="<?php echo $device['maThietBi']; ?>">
-                                                        <?php echo htmlspecialchars($device['tenThietBi']); ?>
-                                                    </option>
+                                            <label class="form-label fw-bold">Loại thiết bị <span class="text-danger">*</span></label>
+                                            <select class="form-select device-type-select" name="device_types[]" required>
+                                                <option value="">-- Chọn thiết bị --</option>
+                                                <?php foreach ($devices as $d): ?>
+                                                    <option value="<?= $d['maThietBi'] ?>"><?= htmlspecialchars($d['tenThietBi']) ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
-                                        <div class="col-12">
-                                            <label class="form-label">Thông tin phiên bản / thương hiệu</label>
-                                            <input type="text" class="form-control input-gray" name="device_models[]"
-                                                placeholder="VD: Panasonic Inverter 1HP CU/CS-PU9AKH-8 ...">
+
+                                        <!-- 2. Chọn Hãng (load bằng AJAX) -->
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Hãng sản xuất <span class="text-danger">*</span></label>
+                                            <select class="form-select device-brand-select" name="device_brands[]" disabled required>
+                                                <option value="">-- Chọn hãng --</option>
+                                            </select>
                                         </div>
+
+                                        <!-- 3. Chọn Mẫu (load bằng AJAX) -->
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Mẫu sản phẩm <span class="text-danger">*</span></label>
+                                            <select class="form-select device-model-select" name="device_models[]" disabled required>
+                                                <option value="">-- Chọn mẫu --</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- 4. Mô tả sự cố -->
                                         <div class="col-12">
-                                            <label class="form-label">Mô tả tình trạng *</label>
-                                            <textarea class="form-control input-gray" name="device_problems[]" rows="3"
-                                                placeholder="Mô tả chi tiết tình trạng hư hỏng..."></textarea>
+                                            <label class="form-label fw-bold">Mô tả tình trạng hư hỏng <span class="text-danger">*</span></label>
+                                            <textarea class="form-control" name="device_problems[]" rows="3" 
+                                                    placeholder="Ví dụ: Máy lạnh không mát, có tiếng kêu lạ từ dàn nóng..." required></textarea>
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Nơi thêm thiết bị mới -->
                                 <div id="additional-devices"></div>
+
                                 <div class="text-center mt-3">
-                                    <button type="button" id="btn-add-device" class="btn btn-outline-success btn-sm">
-                                        <i class="fas fa-plus me-1"></i>Thêm thiết bị khác
+                                    <button type="button" id="btn-add-device" class="btn btn-outline-success">
+                                        <i class="fas fa-plus me-2"></i>Thêm thiết bị khác (tối đa 3)
                                     </button>
                                 </div>
                             </div>
@@ -279,15 +298,13 @@ $canBook = !empty($userInfo['diaChi']) &&
                                 <?php endif; ?>
                             </div>
                             <div class="banner-image-container text-center mt-4">
-    <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner" class="banner-image" style="max-width: 100%; height: 300px; object-fit: cover;">
-</div>
+                                <img src="<?php echo asset('images/waitting.jpg'); ?>" alt="TechCare Banner" class="banner-image" style="max-width: 100%; height: 300px; object-fit: cover;">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </form>
-
-        
 
         <!-- Nút chỉ đường -->
         <div class="text-center mt-4">
@@ -414,7 +431,80 @@ $canBook = !empty($userInfo['diaChi']) &&
         loadSlotsForDate(currentSelectedDate);
         initDeviceManagement();
         initFormValidation();
+        
+        // Gắn sự kiện cho thiết bị đầu tiên
+        const firstDevice = document.querySelector('.device-item');
+        if (firstDevice) {
+            attachDeviceEvents(firstDevice);
+            toggleRemoveButtons();
+        }
     });
+
+    // GẮN SỰ KIỆN AJAX CHO THIẾT BỊ
+    function attachDeviceEvents(block) {
+        const typeSelect = block.querySelector('.device-type-select');
+        const brandSelect = block.querySelector('.device-brand-select');
+        const modelSelect = block.querySelector('.device-model-select');
+
+        typeSelect.addEventListener('change', function () {
+            const maThietBi = this.value;
+            brandSelect.innerHTML = '<option value="">-- Đang tải hãng... --</option>';
+            brandSelect.disabled = true;
+            modelSelect.innerHTML = '<option value="">-- Chọn mẫu --</option>';
+            modelSelect.disabled = true;
+
+            if (!maThietBi) return;
+
+            fetch('<?= url("ajax-device") ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=get_brands&maThietBi=' + maThietBi
+            })
+            .then(r => r.json())
+            .then(data => {
+                brandSelect.innerHTML = '<option value="">-- Chọn hãng --</option>';
+                if (data.success && data.brands.length > 0) {
+                    data.brands.forEach(b => {
+                        brandSelect.innerHTML += `<option value="${b.maHang}">${b.tenHang}</option>`;
+                    });
+                }
+                brandSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Lỗi tải hãng:', error);
+                brandSelect.innerHTML = '<option value="">-- Lỗi tải hãng --</option>';
+            });
+        });
+
+        brandSelect.addEventListener('change', function () {
+            const maHang = this.value;
+            modelSelect.innerHTML = '<option value="">-- Đang tải mẫu... --</option>';
+            modelSelect.disabled = true;
+
+            if (!maHang) return;
+
+            fetch('<?= url("ajax-device") ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=get_models&maHang=' + maHang
+            })
+            .then(r => r.json())
+            .then(data => {
+                modelSelect.innerHTML = '<option value="">-- Chọn mẫu --</option>';
+                if (data.success && data.models.length > 0) {
+                    data.models.forEach(m => {
+                        const label = m.tenMau === 'Mẫu khác' ? 'Mẫu khác (dòng cũ)' : m.tenMau;
+                        modelSelect.innerHTML += `<option value="${m.maMau}">${label}</option>`;
+                    });
+                }
+                modelSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Lỗi tải mẫu:', error);
+                modelSelect.innerHTML = '<option value="">-- Lỗi tải mẫu --</option>';
+            });
+        });
+    }
 
     // ==============================
     // 🔧 VALIDATION HELPER FUNCTIONS
@@ -500,20 +590,27 @@ $canBook = !empty($userInfo['diaChi']) &&
             const deviceBlocks = document.querySelectorAll('.device-item');
             deviceBlocks.forEach((block, index) => {
                 const deviceType = block.querySelector('select[name="device_types[]"]');
+                const deviceBrand = block.querySelector('select[name="device_brands[]"]');
+                const deviceModel = block.querySelector('select[name="device_models[]"]');
                 const problem = block.querySelector('textarea[name="device_problems[]"]');
-                const model = block.querySelector('input[name="device_models[]"]');
 
                 if (deviceType && deviceType.value === '') {
                     showError(deviceType, `Vui lòng chọn loại thiết bị ${index + 1}`);
                     hasError = true;
                 }
 
-                if (problem && problem.value.trim() === '') {
-                    showError(problem, `Vui lòng mô tả tình trạng của thiết bị ${index + 1}`);
+                if (deviceBrand && deviceBrand.value === '') {
+                    showError(deviceBrand, `Vui lòng chọn hãng sản xuất cho thiết bị ${index + 1}`);
                     hasError = true;
                 }
-                if (model && model.value.trim() === '') {
-                    showError(model, `Vui lòng nhập thông tin phiên bản/thương hiệu thiết bị ${index + 1}`);
+
+                if (deviceModel && deviceModel.value === '') {
+                    showError(deviceModel, `Vui lòng chọn mẫu sản phẩm cho thiết bị ${index + 1}`);
+                    hasError = true;
+                }
+
+                if (problem && problem.value.trim() === '') {
+                    showError(problem, `Vui lòng mô tả tình trạng của thiết bị ${index + 1}`);
                     hasError = true;
                 }
             });
@@ -558,7 +655,7 @@ $canBook = !empty($userInfo['diaChi']) &&
         );
     }
 
-    // TẠO LƯỚI NGÀY (GIỮ NGUYÊN)
+    // TẠO LƯỚI NGÀY
     function generateDateGrid() {
         const dateGrid = document.getElementById('date-grid');
         if (!dateGrid) {
@@ -620,7 +717,7 @@ $canBook = !empty($userInfo['diaChi']) &&
         });
     }
 
-    // LOAD SLOTS THEO NGÀY (ĐÃ XÓA PHẦN THÔNG TIN PHÂN BỔ)
+    // LOAD SLOTS THEO NGÀY
     async function loadSlotsForDate(date) {
         console.log("Bắt đầu load slots cho ngày:", date);
 
@@ -695,7 +792,7 @@ $canBook = !empty($userInfo['diaChi']) &&
         }
     }
 
-    // CẬP NHẬT HIỂN THỊ SLOTS (ĐÃ XÓA PHẦN THÔNG TIN PHÂN BỔ)
+    // CẬP NHẬT HIỂN THỊ SLOTS
     function updateSlotsDisplay(slots, date) {
         const timeContainer = document.getElementById('time-slots-container');
 
@@ -736,12 +833,9 @@ $canBook = !empty($userInfo['diaChi']) &&
                        for="time_${slot.maKhungGio}">
                     <div class="fw-bold">${slot.pham_vi || slot.khoangGio || 'N/A'}</div>
                     <div class="small text-muted">${slot.gioBatDau || '?'} - ${slot.gioKetThuc || '?'}</div>
-                    <div class="slot-info mt-1">
-                        ${!isAvailable ?
-                    `<small class="text-danger">${reason}</small>` :
-                    `<small class="text-success">Còn ${slot.kha_dung || 0} slot</small>`
-                }
-                    </div>
+                    ${!isAvailable ? 
+                        `<div class="slot-info mt-1"><small class="text-danger">${reason}</small></div>` : 
+                        ''}
                 </label>
             </div>
         `;
@@ -749,7 +843,7 @@ $canBook = !empty($userInfo['diaChi']) &&
         });
     }
 
-    // QUẢN LÝ THIẾT BỊ (GIỮ NGUYÊN)
+    // QUẢN LÝ THIẾT BỊ
     function initDeviceManagement() {
         const addButton = document.getElementById('btn-add-device');
         if (!addButton) {
@@ -772,8 +866,8 @@ $canBook = !empty($userInfo['diaChi']) &&
         if (!additionalDevices) return;
 
         const newDevice = document.createElement('div');
-        newDevice.className = 'device-item mb-3 p-3 border border-gray rounded';
-        newDevice.setAttribute('data-device-index', index);
+        newDevice.className = 'device-item mb-4 p-4 border rounded bg-light';
+        newDevice.setAttribute('data-index', index);
 
         const deviceOptions = `<?php
         $options = '';
@@ -784,40 +878,67 @@ $canBook = !empty($userInfo['diaChi']) &&
         ?>`;
 
         newDevice.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0 text-primary">Thiết bị ${index}</h6>
-            <button type="button" class="btn btn-danger btn-sm btn-remove-device">
-                <i class="fas fa-times me-1"></i>Xóa
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="text-primary mb-0">Thiết bị ${index}</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-device">
+                <i class="fas fa-trash"></i> Xóa
             </button>
         </div>
-        <div class="row g-2">
+        <div class="row g-3">
             <div class="col-12">
-                <label class="form-label">Loại thiết bị *</label>
-                <select class="form-select input-gray" name="device_types[]">
-                    <option value="">Chọn loại thiết bị</option>
+                <label class="form-label fw-bold">Loại thiết bị <span class="text-danger">*</span></label>
+                <select class="form-select device-type-select" name="device_types[]" required>
+                    <option value="">-- Chọn thiết bị --</option>
                     ${deviceOptions}
                 </select>
             </div>
-            <div class="col-12">
-                <label class="form-label">Thông tin thiết bị</label>
-                <input type="text" class="form-control input-gray" name="device_models[]" 
-                    placeholder="VD: Dell Inspiron 15, iPhone 13...">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Hãng sản xuất <span class="text-danger">*</span></label>
+                <select class="form-select device-brand-select" name="device_brands[]" disabled required>
+                    <option value="">-- Chọn hãng --</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Mẫu sản phẩm <span class="text-danger">*</span></label>
+                <select class="form-select device-model-select" name="device_models[]" disabled required>
+                    <option value="">-- Chọn mẫu --</option>
+                </select>
             </div>
             <div class="col-12">
-                <label class="form-label">Mô tả tình trạng *</label>
-                <textarea class="form-control input-gray" name="device_problems[]" rows="2"
-                        placeholder="Mô tả chi tiết tình trạng hư hỏng..."></textarea>
+                <label class="form-label fw-bold">Mô tả tình trạng hư hỏng <span class="text-danger">*</span></label>
+                <textarea class="form-control" name="device_problems[]" rows="3" 
+                          placeholder="Ví dụ: Máy lạnh không mát, có tiếng kêu lạ từ dàn nóng..." required></textarea>
             </div>
         </div>
     `;
 
+        // Gắn sự kiện xóa
         newDevice.querySelector('.btn-remove-device').addEventListener('click', function () {
             newDevice.remove();
             deviceCount--;
             updateDeviceNumbers();
+            toggleRemoveButtons();
         });
 
         additionalDevices.appendChild(newDevice);
+        
+        // Gắn sự kiện AJAX cho thiết bị mới
+        attachDeviceEvents(newDevice);
+        
+        // Hiển thị nút xóa nếu có nhiều hơn 1 thiết bị
+        toggleRemoveButtons();
+    }
+
+    // Hiển thị/ẩn nút xóa
+    function toggleRemoveButtons() {
+        const removeButtons = document.querySelectorAll('.btn-remove-device');
+        const firstRemoveButton = document.querySelector('.device-item:first-child .btn-remove-device');
+        
+        if (deviceCount > 1) {
+            removeButtons.forEach(btn => btn.classList.remove('d-none'));
+        } else {
+            if (firstRemoveButton) firstRemoveButton.classList.add('d-none');
+        }
     }
 
     function updateDeviceNumbers() {
@@ -827,6 +948,7 @@ $canBook = !empty($userInfo['diaChi']) &&
             if (title) {
                 title.textContent = `Thiết bị ${index + 1}`;
             }
+            item.setAttribute('data-index', index + 1);
         });
     }
 </script>

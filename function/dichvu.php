@@ -499,69 +499,70 @@ class DichVuService
 
 
     public function themDonDichVu($maKH, $ngayDat, $maKhungGio, $noiSuaChua, $danhSachThietBi, $ghiChu = null)
-    {
-        try {
-            // Bắt đầu transaction
-            $this->db->beginTransaction();
+{
+    try {
+        $this->db->beginTransaction();
 
-            // Tìm KTV phù hợp trước khi tạo đơn
-            $maKTV = $this->timKTVPhuHop($ngayDat, $maKhungGio);
+        // Tìm KTV phù hợp (giữ nguyên logic cũ)
+        $maKTV = $this->timKTVPhuHop($ngayDat, $maKhungGio);
 
-            // 1. Insert vào bảng dondichvu với maKTV
-            $sqlDonDichVu = "INSERT INTO dondichvu (
-                                diemhen, maKH, ngayDat, ghiChu, trangThai, 
-                                noiSuaChua, maKhungGio, maKTV
-                             ) VALUES (?, ?, ?, ?, 1, 0, ?, ?)";
+        // 1. Tạo đơn dịch vụ chính
+        $sqlDon = "INSERT INTO dondichvu (
+                        diemhen, maKH, ngayDat, ghiChu, trangThai, 
+                        noiSuaChua, maKhungGio, maKTV
+                   ) VALUES (?, ?, ?, ?, 1, 0, ?, ?)";
 
-            $stmtDonDichVu = $this->db->prepare($sqlDonDichVu);
+        $stmtDon = $this->db->prepare($sqlDon);
+        $stmtDon->execute([
+            $noiSuaChua,      // diemhen
+            $maKH,
+            $ngayDat,
+            $ghiChu ?? '',
+    // noiSuaChua
+            $maKhungGio,
+            $maKTV
+        ]);
 
-            // Tạo điểm hẹn
-            $diemHen = $noiSuaChua;
+        $maDon = $this->db->lastInsertId();
 
-            $stmtDonDichVu->execute([
-                $diemHen,
-                $maKH,
-                $ngayDat,
-                $ghiChu,
-                $maKhungGio,
-                $maKTV  // Thêm maKTV vào đây
-            ]);
+        // 2. Thêm chi tiết từng thiết bị (có maMau rồi!)
+        $sqlChiTiet = "INSERT INTO chitietdondichvu (
+                          maDon, maThietBi, maHang, maMau, motaTinhTrang, trangThai
+                       ) VALUES (?, ?, ?, ?, ?, 1)";
 
-            // Lấy mã đơn vừa insert
-            $maDon = $this->db->lastInsertId();
+        $stmtChiTiet = $this->db->prepare($sqlChiTiet);
 
-            // 2. Insert vào bảng chitietdondichvu cho từng thiết bị
-            $sqlChiTiet = "INSERT INTO chitietdondichvu (
-                              maDon, maThietBi, phienBan, motaTinhTrang, trangThai
-                           ) VALUES (?, ?, ?, ?, 1)";
+        foreach ($danhSachThietBi as $tb) {
+            // Validate dữ liệu đầu vào
+            $maThietBi = (int)($tb['maThietBi'] ?? 0);
+            $maHang    = !empty($tb['maHang']) ? (int)$tb['maHang'] : null;
+            $maMau     = (int)$tb['maMau']; // bắt buộc có
+            $moTa      = trim($tb['motaTinhTrang'] ?? '');
 
-            $stmtChiTiet = $this->db->prepare($sqlChiTiet);
-
-            foreach ($danhSachThietBi as $thietBi) {
-                $stmtChiTiet->execute([
-                    $maDon,
-                    $thietBi['maThietBi'],
-                    $thietBi['phienBan'],
-                    $thietBi['motaTinhTrang']
-                ]);
+            if ($maThietBi <= 0 || $maMau <= 0 || empty($moTa)) {
+                throw new Exception("Dữ liệu thiết bị không hợp lệ");
             }
 
-            // Commit transaction
-            $this->db->commit();
-
-            // Ghi log phân công KTV
-            error_log("Đơn #$maDon đã được phân công cho KTV #$maKTV");
-
-            return $maDon;
-
-        } catch (Exception $e) {
-            // Rollback transaction nếu có lỗi
-            $this->db->rollBack();
-
-            error_log("Lỗi khi thêm đơn dịch vụ: " . $e->getMessage());
-            throw new Exception("Không thể tạo đơn dịch vụ: " . $e->getMessage());
+            $stmtChiTiet->execute([
+                $maDon,
+                $maThietBi,
+                $maHang,     // có thể null nếu không chọn hãng
+                $maMau,      // ← quan trọng: lưu đúng mẫu khách chọn
+                $moTa
+            ]);
         }
+
+        $this->db->commit();
+
+        error_log("Đơn dịch vụ #$maDon tạo thành công – Phân công KTV #$maKTV");
+        return $maDon;
+
+    } catch (Exception $e) {
+        $this->db->rollBack();
+        error_log("Lỗi tạo đơn dịch vụ: " . $e->getMessage());
+        throw new Exception("Không thể tạo đơn dịch vụ: " . $e->getMessage());
     }
+}
 
     public function timKTVPhuHop($ngayDat, $maKhungGio)
     {
